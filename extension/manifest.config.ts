@@ -26,6 +26,16 @@ export default defineManifest({
       run_at: "document_idle",
     },
   ],
-  permissions: ["storage", "activeTab"],
+  permissions: ["storage", "activeTab", "identity"],
   host_permissions: ["https://docs.google.com/*", "https://sheets.google.com/*"],
+  oauth2: {
+    // Replace with a "Chrome Extension" OAuth client id from Google Cloud
+    // Console (APIs & Services > Credentials), registered against this
+    // extension's id. See README.md for setup steps.
+    client_id: "YOUR_GOOGLE_OAUTH_CLIENT_ID.apps.googleusercontent.com",
+    scopes: [
+      "https://www.googleapis.com/auth/spreadsheets.readonly",
+      "https://www.googleapis.com/auth/drive.metadata.readonly",
+    ],
+  },
 });

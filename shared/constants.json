@@ -1,7 +1,13 @@
 {
   "backendBaseUrl": "http://localhost:8000",
   "healthCheckPath": "/health",
+  "authVerifyPath": "/auth/verify",
+  "sheetsRawPathTemplate": "/sheets/{spreadsheetId}/raw",
   "extensionOrigins": [
     "chrome-extension://__EXTENSION_ID__"
+  ],
+  "googleOAuthScopes": [
+    "https://www.googleapis.com/auth/spreadsheets.readonly",
+    "https://www.googleapis.com/auth/drive.metadata.readonly"
   ]
 }

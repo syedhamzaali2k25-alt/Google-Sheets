@@ -60,7 +60,8 @@ npm run dev
 The extension has:
 
 - **Popup** (`src/popup`) — pings the backend's `/health` endpoint on open and
-  shows whether it's reachable.
+  shows whether it's reachable, plus a "Connect Google Account" button that
+  runs the OAuth flow and verifies the resulting token with the backend.
 - **Content script** (`src/content/content-script.ts`) — injected into
   `docs.google.com/spreadsheets/*` and `sheets.google.com/*`, currently just
   logs that it loaded.
@@ -68,10 +69,40 @@ The extension has:
 Run the backend first (or update `shared/constants.json` if it's hosted
 elsewhere) so the popup's status check has something to reach.
 
+### Google OAuth setup
+
+The popup's "Connect Google Account" button uses `chrome.identity.getAuthToken`,
+which requires an OAuth client registered with Google:
+
+1. Load the unpacked extension once (see above) so Chrome assigns it an id —
+   copy the id from `chrome://extensions`.
+2. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials),
+   create an OAuth 2.0 Client ID of type **Chrome Extension**, using that
+   extension id.
+3. Enable the **Google Sheets API** and **Google Drive API** for the project.
+4. Copy the generated client id into `extension/manifest.config.ts`
+   (`oauth2.client_id`), replacing the `YOUR_GOOGLE_OAUTH_CLIENT_ID...`
+   placeholder, and rebuild the extension.
+
+The extension requests two read-only scopes:
+`spreadsheets.readonly` and `drive.metadata.readonly` (see
+`shared/constants.json` → `googleOAuthScopes`).
+
 ## Shared
 
 `shared/` holds a JSON file of constants and a TypeScript file of types used
 across the extension and backend — see `shared/README.md`.
+
+## API
+
+- `GET /health` — liveness check.
+- `POST /auth/verify` — body `{"access_token": "..."}`; confirms the token
+  with Google's tokeninfo endpoint and returns its granted scope/expiry, or
+  `401` if it's invalid or expired.
+- `POST /sheets/{spreadsheet_id}/raw` — body `{"access_token": "..."}`; uses
+  the token to fetch every sheet's raw cell values and formulas via the
+  Google Sheets API. Returns `401` for an invalid/expired token, `403` if the
+  account can't access that spreadsheet, `404` if it doesn't exist.
 
 ## Running both together
 
@@ -79,5 +110,7 @@ across the extension and backend — see `shared/README.md`.
 2. Build or run the extension (`npm run dev` / `npm run build`) and load
    `extension/dist` as an unpacked extension.
 3. Open the extension's popup — it should show "Backend: online".
-4. Open a Google Sheet and check the browser console for the content
+4. Click "Connect Google Account" (requires the OAuth setup above) — on
+   success the popup shows "Verified with backend."
+5. Open a Google Sheet and check the browser console for the content
    script's log line.

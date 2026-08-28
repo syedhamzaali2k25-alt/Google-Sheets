@@ -32,3 +32,22 @@
 .status--offline {
   color: #cf222e;
 }
+
+button {
+  display: block;
+  width: 100%;
+  margin: 12px 0 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  background: #1a73e8;
+  color: #fff;
+  cursor: pointer;
+}
+
+button:disabled {
+  background: #9aa0a6;
+  cursor: default;
+}

@@ -1,7 +1,11 @@
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
+from app.auth import TokenVerificationError, verify_access_token
+from app.google_sheets import SheetsAccessError, fetch_spreadsheet_raw
 
 # A packed (non-dev) Chrome extension has a fixed origin of the form
 # chrome-extension://<extension-id>. During local development the unpacked
@@ -21,6 +25,33 @@ app.add_middleware(
 )
 
 
+class AccessTokenRequest(BaseModel):
+    access_token: str
+
+
 @app.get("/health")
 def health_check() -> dict[str, str]:
     return {"status": "ok", "service": "google-sheet-insights-backend"}
+
+
+@app.post("/auth/verify")
+async def verify_auth(payload: AccessTokenRequest) -> dict:
+    try:
+        token_info = await verify_access_token(payload.access_token)
+    except TokenVerificationError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+
+    return {
+        "valid": True,
+        "scope": token_info.get("scope"),
+        "expiresIn": token_info.get("expires_in"),
+        "audience": token_info.get("aud"),
+    }
+
+
+@app.post("/sheets/{spreadsheet_id}/raw")
+def get_spreadsheet_raw(spreadsheet_id: str, payload: AccessTokenRequest) -> dict:
+    try:
+        return fetch_spreadsheet_raw(payload.access_token, spreadsheet_id)
+    except SheetsAccessError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
