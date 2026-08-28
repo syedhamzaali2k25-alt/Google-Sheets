@@ -110,6 +110,16 @@ across the extension and backend — see `shared/README.md`.
   (`text`/`number`/`date`/`currency`/`formula`/`mixed`/`empty`), every
   formula's cell reference, named ranges, merged cells, and basic stats
   (total rows, non-empty cells, % empty).
+- `POST /sheets/{spreadsheet_id}/health` — body `{"access_token": "...",
+  "weights": {...}}` (`weights` optional); builds the `SpreadsheetStructure`
+  above and runs it through `backend/analysis/health_score.py` to produce a
+  `HealthReport`: an overall 0-100 score, a 0-100 score per category (`data
+  quality`, `formula quality`, `structure`, `maintainability`, `security` —
+  weighted equally by default, override any of the five in `weights`), and a
+  list of findings (each with category, severity, description, affected cell
+  range, and a recommendation), sorted highest-severity first. Same
+  401/403/404 error handling as `/raw`; a `weights` object whose values sum
+  to zero returns `400`.
 
 ### Testing the backend
 
@@ -119,10 +129,13 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-`backend/analysis/structure.py`'s unit tests run against a fixture spreadsheet
-at `backend/tests/fixtures/sales_sheet_raw.json` (a mock "Sales" sheet with 9
-data rows, a formula column, a duplicate row, and a hidden "Notes" sheet with
-a merged cell) — no network access or real Google credentials needed.
+Unit tests run against a fixture spreadsheet at
+`backend/tests/fixtures/sales_sheet_raw.json` — a mock "Sales" sheet with 9
+data rows, a formula column, a duplicate row, a formula error (`#DIV/0!`), an
+empty column, a column with no header, and a fake email address, plus a
+hidden "Notes" sheet with a merged cell — exercising every health-score
+category and every structure check without any network access or real
+Google credentials.
 
 ## Running both together
 

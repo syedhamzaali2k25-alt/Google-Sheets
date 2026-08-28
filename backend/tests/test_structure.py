@@ -29,7 +29,7 @@ def test_sheets_list(structure):
 
     assert by_name["Sales"].hidden is False
     assert by_name["Sales"].row_count == 10
-    assert by_name["Sales"].column_count == 8
+    assert by_name["Sales"].column_count == 9
 
     assert by_name["Notes"].hidden is True
     assert by_name["Notes"].row_count == 2
@@ -49,6 +49,9 @@ def test_column_headers_and_types(structure):
         "Total": ColumnType.FORMULA,
         "Comments": ColumnType.EMPTY,
         "Flag": ColumnType.MIXED,
+        # The 9th column has no header cell at all (a missing-header case
+        # used by the health scoring engine's maintainability checks).
+        None: ColumnType.TEXT,
     }
 
 
@@ -81,12 +84,13 @@ def test_stats(structure):
     # rowCount(Sales)=10 + rowCount(Notes)=2
     assert structure.stats.total_rows == 12
 
-    # Sales: header (8) + 9 data rows * 7 non-empty cells each (Comments is
-    # always empty) = 71. Notes: 1 non-empty cell per row * 2 rows = 2.
-    assert structure.stats.total_non_empty_cells == 73
+    # Sales: header (8) + 9 data rows * 8 non-empty cells each (every column
+    # but Comments is filled in) = 80. Notes: 1 non-empty cell per row * 2
+    # rows = 2.
+    assert structure.stats.total_non_empty_cells == 82
 
-    # total_cells = 10*8 (Sales) + 2*3 (Notes) = 86
-    assert structure.stats.percent_empty_cells == pytest.approx(15.12, abs=0.01)
+    # total_cells = 10*9 (Sales) + 2*3 (Notes) = 96
+    assert structure.stats.percent_empty_cells == pytest.approx(14.58, abs=0.01)
 
 
 def test_duplicate_row_does_not_break_analysis(structure):

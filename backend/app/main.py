@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from analysis.health_score import CategoryWeights, HealthReport, compute_health_report
 from analysis.structure import SpreadsheetStructure, build_spreadsheet_structure
 from app.auth import TokenVerificationError, verify_access_token
 from app.google_sheets import SheetsAccessError, fetch_spreadsheet_raw
@@ -28,6 +29,11 @@ app.add_middleware(
 
 class AccessTokenRequest(BaseModel):
     access_token: str
+
+
+class HealthReportRequest(BaseModel):
+    access_token: str
+    weights: CategoryWeights | None = None
 
 
 @app.get("/health")
@@ -66,3 +72,17 @@ def get_spreadsheet_structure(spreadsheet_id: str, payload: AccessTokenRequest) 
         raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
 
     return build_spreadsheet_structure(raw)
+
+
+@app.post("/sheets/{spreadsheet_id}/health", response_model=HealthReport)
+def get_spreadsheet_health(spreadsheet_id: str, payload: HealthReportRequest) -> HealthReport:
+    try:
+        raw = fetch_spreadsheet_raw(payload.access_token, spreadsheet_id)
+    except SheetsAccessError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+
+    structure = build_spreadsheet_structure(raw)
+    try:
+        return compute_health_report(structure, raw, weights=payload.weights)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc

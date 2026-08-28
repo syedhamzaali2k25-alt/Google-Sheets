@@ -76,7 +76,7 @@ _DATE_FORMAT_TYPES = {"DATE", "DATE_TIME"}
 _NUMBER_FORMAT_TYPES = {"NUMBER", "PERCENT", "SCIENTIFIC", "TIME"}
 
 
-def _column_letters(index: int) -> str:
+def column_letters(index: int) -> str:
     """0-based column index -> spreadsheet column letters (0 -> "A")."""
     index += 1
     letters = ""
@@ -86,8 +86,8 @@ def _column_letters(index: int) -> str:
     return letters
 
 
-def _cell_ref(row_index: int, col_index: int) -> str:
-    return f"{_column_letters(col_index)}{row_index + 1}"
+def cell_ref(row_index: int, col_index: int) -> str:
+    return f"{column_letters(col_index)}{row_index + 1}"
 
 
 def _range_to_a1(range_: dict[str, Any]) -> str | None:
@@ -98,12 +98,12 @@ def _range_to_a1(range_: dict[str, Any]) -> str | None:
     if end_row is None or end_col is None:
         return None
 
-    start = _cell_ref(start_row, start_col)
-    end = _cell_ref(end_row - 1, end_col - 1)
+    start = cell_ref(start_row, start_col)
+    end = cell_ref(end_row - 1, end_col - 1)
     return start if start == end else f"{start}:{end}"
 
 
-def _cell_is_non_empty(cell: dict[str, Any] | None) -> bool:
+def cell_is_non_empty(cell: dict[str, Any] | None) -> bool:
     if not cell:
         return False
     if cell.get("formula"):
@@ -115,7 +115,7 @@ def _cell_is_non_empty(cell: dict[str, Any] | None) -> bool:
 
 def _classify_cell(cell: dict[str, Any] | None) -> str | None:
     """Returns a ColumnType value for one cell, or None if the cell is empty."""
-    if not _cell_is_non_empty(cell):
+    if not cell_is_non_empty(cell):
         return None
     if cell.get("formula"):
         return ColumnType.FORMULA.value
@@ -186,13 +186,13 @@ def build_spreadsheet_structure(raw: dict[str, Any]) -> SpreadsheetStructure:
 
         for row_index, row in enumerate(rows):
             for col_index, cell in enumerate(row):
-                if _cell_is_non_empty(cell):
+                if cell_is_non_empty(cell):
                     total_non_empty_cells += 1
                 if cell and cell.get("formula"):
                     formulas.append(
                         FormulaRef(
                             sheet_name=name,
-                            cell=_cell_ref(row_index, col_index),
+                            cell=cell_ref(row_index, col_index),
                             formula=cell["formula"],
                         )
                     )
