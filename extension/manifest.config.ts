@@ -32,7 +32,7 @@ export default defineManifest({
     // Replace with a "Chrome Extension" OAuth client id from Google Cloud
     // Console (APIs & Services > Credentials), registered against this
     // extension's id. See README.md for setup steps.
-    client_id: "YOUR_GOOGLE_OAUTH_CLIENT_ID.apps.googleusercontent.com",
+    client_id: "319140573974-mkcdhjnb5pq0th975sbrqc58523a91mn.apps.googleusercontent.com",
     scopes: [
       "https://www.googleapis.com/auth/spreadsheets.readonly",
       "https://www.googleapis.com/auth/drive.metadata.readonly",
