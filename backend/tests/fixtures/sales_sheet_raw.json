@@ -1,0 +1,148 @@
+{
+  "spreadsheetId": "mock-spreadsheet-id",
+  "title": "Q1 Sales Tracker",
+  "namedRanges": [
+    {
+      "name": "SalesData",
+      "sheetId": 0,
+      "startRowIndex": 0,
+      "endRowIndex": 10,
+      "startColumnIndex": 0,
+      "endColumnIndex": 8
+    }
+  ],
+  "sheets": [
+    {
+      "sheetId": 0,
+      "title": "Sales",
+      "hidden": false,
+      "rowCount": 10,
+      "columnCount": 8,
+      "merges": [],
+      "rows": [
+        [
+          {"value": "Date", "formattedValue": "Date", "formula": null, "numberFormatType": null},
+          {"value": "Product", "formattedValue": "Product", "formula": null, "numberFormatType": null},
+          {"value": "Region", "formattedValue": "Region", "formula": null, "numberFormatType": null},
+          {"value": "Units", "formattedValue": "Units", "formula": null, "numberFormatType": null},
+          {"value": "Unit Price", "formattedValue": "Unit Price", "formula": null, "numberFormatType": null},
+          {"value": "Total", "formattedValue": "Total", "formula": null, "numberFormatType": null},
+          {"value": "Comments", "formattedValue": "Comments", "formula": null, "numberFormatType": null},
+          {"value": "Flag", "formattedValue": "Flag", "formula": null, "numberFormatType": null}
+        ],
+        [
+          {"value": 45300, "formattedValue": "1/5/2024", "formula": null, "numberFormatType": "DATE"},
+          {"value": "Widget A", "formattedValue": "Widget A", "formula": null, "numberFormatType": null},
+          {"value": "West", "formattedValue": "West", "formula": null, "numberFormatType": null},
+          {"value": 10, "formattedValue": "10", "formula": null, "numberFormatType": "NUMBER"},
+          {"value": 19.99, "formattedValue": "$19.99", "formula": null, "numberFormatType": "CURRENCY"},
+          {"value": 199.9, "formattedValue": "$199.90", "formula": "=D2*E2", "numberFormatType": "CURRENCY"},
+          null,
+          {"value": "Yes", "formattedValue": "Yes", "formula": null, "numberFormatType": null}
+        ],
+        [
+          {"value": 45301, "formattedValue": "1/6/2024", "formula": null, "numberFormatType": "DATE"},
+          {"value": "Widget B", "formattedValue": "Widget B", "formula": null, "numberFormatType": null},
+          {"value": "East", "formattedValue": "East", "formula": null, "numberFormatType": null},
+          {"value": 5, "formattedValue": "5", "formula": null, "numberFormatType": "NUMBER"},
+          {"value": 9.99, "formattedValue": "$9.99", "formula": null, "numberFormatType": "CURRENCY"},
+          {"value": 49.95, "formattedValue": "$49.95", "formula": "=D3*E3", "numberFormatType": "CURRENCY"},
+          null,
+          {"value": 1, "formattedValue": "1", "formula": null, "numberFormatType": "NUMBER"}
+        ],
+        [
+          {"value": 45302, "formattedValue": "1/7/2024", "formula": null, "numberFormatType": "DATE"},
+          {"value": "Widget A", "formattedValue": "Widget A", "formula": null, "numberFormatType": null},
+          {"value": "West", "formattedValue": "West", "formula": null, "numberFormatType": null},
+          {"value": 8, "formattedValue": "8", "formula": null, "numberFormatType": "NUMBER"},
+          {"value": 19.99, "formattedValue": "$19.99", "formula": null, "numberFormatType": "CURRENCY"},
+          {"value": 159.92, "formattedValue": "$159.92", "formula": "=D4*E4", "numberFormatType": "CURRENCY"},
+          null,
+          {"value": "No", "formattedValue": "No", "formula": null, "numberFormatType": null}
+        ],
+        [
+          {"value": 45303, "formattedValue": "1/8/2024", "formula": null, "numberFormatType": "DATE"},
+          {"value": "Widget C", "formattedValue": "Widget C", "formula": null, "numberFormatType": null},
+          {"value": "North", "formattedValue": "North", "formula": null, "numberFormatType": null},
+          {"value": 12, "formattedValue": "12", "formula": null, "numberFormatType": "NUMBER"},
+          {"value": 14.5, "formattedValue": "$14.50", "formula": null, "numberFormatType": "CURRENCY"},
+          {"value": 174.0, "formattedValue": "$174.00", "formula": "=D5*E5", "numberFormatType": "CURRENCY"},
+          null,
+          {"value": 0, "formattedValue": "0", "formula": null, "numberFormatType": "NUMBER"}
+        ],
+        [
+          {"value": 45304, "formattedValue": "1/9/2024", "formula": null, "numberFormatType": "DATE"},
+          {"value": "Widget B", "formattedValue": "Widget B", "formula": null, "numberFormatType": null},
+          {"value": "South", "formattedValue": "South", "formula": null, "numberFormatType": null},
+          {"value": 7, "formattedValue": "7", "formula": null, "numberFormatType": "NUMBER"},
+          {"value": 9.99, "formattedValue": "$9.99", "formula": null, "numberFormatType": "CURRENCY"},
+          {"value": 69.93, "formattedValue": "$69.93", "formula": "=D6*E6", "numberFormatType": "CURRENCY"},
+          null,
+          {"value": "Yes", "formattedValue": "Yes", "formula": null, "numberFormatType": null}
+        ],
+        [
+          {"value": 45300, "formattedValue": "1/5/2024", "formula": null, "numberFormatType": "DATE"},
+          {"value": "Widget A", "formattedValue": "Widget A", "formula": null, "numberFormatType": null},
+          {"value": "West", "formattedValue": "West", "formula": null, "numberFormatType": null},
+          {"value": 10, "formattedValue": "10", "formula": null, "numberFormatType": "NUMBER"},
+          {"value": 19.99, "formattedValue": "$19.99", "formula": null, "numberFormatType": "CURRENCY"},
+          {"value": 199.9, "formattedValue": "$199.90", "formula": "=D7*E7", "numberFormatType": "CURRENCY"},
+          null,
+          {"value": "Yes", "formattedValue": "Yes", "formula": null, "numberFormatType": null}
+        ],
+        [
+          {"value": 45305, "formattedValue": "1/10/2024", "formula": null, "numberFormatType": "DATE"},
+          {"value": "Widget C", "formattedValue": "Widget C", "formula": null, "numberFormatType": null},
+          {"value": "North", "formattedValue": "North", "formula": null, "numberFormatType": null},
+          {"value": 15, "formattedValue": "15", "formula": null, "numberFormatType": "NUMBER"},
+          {"value": 14.5, "formattedValue": "$14.50", "formula": null, "numberFormatType": "CURRENCY"},
+          {"value": 217.5, "formattedValue": "$217.50", "formula": "=D8*E8", "numberFormatType": "CURRENCY"},
+          null,
+          {"value": 0, "formattedValue": "0", "formula": null, "numberFormatType": "NUMBER"}
+        ],
+        [
+          {"value": 45306, "formattedValue": "1/11/2024", "formula": null, "numberFormatType": "DATE"},
+          {"value": "Widget D", "formattedValue": "Widget D", "formula": null, "numberFormatType": null},
+          {"value": "East", "formattedValue": "East", "formula": null, "numberFormatType": null},
+          {"value": 3, "formattedValue": "3", "formula": null, "numberFormatType": "NUMBER"},
+          {"value": 25.0, "formattedValue": "$25.00", "formula": null, "numberFormatType": "CURRENCY"},
+          {"value": 75.0, "formattedValue": "$75.00", "formula": "=D9*E9", "numberFormatType": "CURRENCY"},
+          null,
+          {"value": "No", "formattedValue": "No", "formula": null, "numberFormatType": null}
+        ],
+        [
+          {"value": 45307, "formattedValue": "1/12/2024", "formula": null, "numberFormatType": "DATE"},
+          {"value": "Widget B", "formattedValue": "Widget B", "formula": null, "numberFormatType": null},
+          {"value": "South", "formattedValue": "South", "formula": null, "numberFormatType": null},
+          {"value": 9, "formattedValue": "9", "formula": null, "numberFormatType": "NUMBER"},
+          {"value": 9.99, "formattedValue": "$9.99", "formula": null, "numberFormatType": "CURRENCY"},
+          {"value": 89.91, "formattedValue": "$89.91", "formula": "=D10*E10", "numberFormatType": "CURRENCY"},
+          null,
+          {"value": 1, "formattedValue": "1", "formula": null, "numberFormatType": "NUMBER"}
+        ]
+      ]
+    },
+    {
+      "sheetId": 1,
+      "title": "Notes",
+      "hidden": true,
+      "rowCount": 2,
+      "columnCount": 3,
+      "merges": [
+        {"startRowIndex": 0, "endRowIndex": 1, "startColumnIndex": 0, "endColumnIndex": 3}
+      ],
+      "rows": [
+        [
+          {"value": "Internal notes - do not share", "formattedValue": "Internal notes - do not share", "formula": null, "numberFormatType": null},
+          null,
+          null
+        ],
+        [
+          {"value": "Numbers are unaudited.", "formattedValue": "Numbers are unaudited.", "formula": null, "numberFormatType": null},
+          null,
+          null
+        ]
+      ]
+    }
+  ]
+}

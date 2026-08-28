@@ -3,6 +3,7 @@
   "healthCheckPath": "/health",
   "authVerifyPath": "/auth/verify",
   "sheetsRawPathTemplate": "/sheets/{spreadsheetId}/raw",
+  "sheetsStructurePathTemplate": "/sheets/{spreadsheetId}/structure",
   "extensionOrigins": [
     "chrome-extension://__EXTENSION_ID__"
   ],

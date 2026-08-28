@@ -28,10 +28,22 @@ def _extract_cell(cell: dict[str, Any]) -> dict[str, Any] | None:
     if not cell:
         return None
     formula = (cell.get("userEnteredValue") or {}).get("formulaValue")
+    number_format_type = (cell.get("userEnteredFormat") or {}).get("numberFormat", {}).get("type")
     return {
         "value": _extract_effective_value(cell.get("effectiveValue")),
         "formattedValue": cell.get("formattedValue"),
         "formula": formula,
+        "numberFormatType": number_format_type,
+    }
+
+
+def _extract_range(range_: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "sheetId": range_.get("sheetId"),
+        "startRowIndex": range_.get("startRowIndex", 0),
+        "endRowIndex": range_.get("endRowIndex"),
+        "startColumnIndex": range_.get("startColumnIndex", 0),
+        "endColumnIndex": range_.get("endColumnIndex"),
     }
 
 
@@ -74,16 +86,24 @@ def fetch_spreadsheet_raw(access_token: str, spreadsheet_id: str) -> dict[str, A
             {
                 "sheetId": properties.get("sheetId"),
                 "title": properties.get("title"),
+                "hidden": properties.get("hidden", False),
                 "rowCount": grid_properties.get("rowCount"),
                 "columnCount": grid_properties.get("columnCount"),
                 "rows": rows,
+                "merges": [_extract_range(merge) for merge in sheet.get("merges", [])],
             }
         )
+
+    named_ranges = [
+        {"name": nr.get("name"), **_extract_range(nr.get("range", {}))}
+        for nr in spreadsheet.get("namedRanges", [])
+    ]
 
     return {
         "spreadsheetId": spreadsheet.get("spreadsheetId"),
         "title": spreadsheet.get("properties", {}).get("title"),
         "sheets": sheets,
+        "namedRanges": named_ranges,
     }
 
 

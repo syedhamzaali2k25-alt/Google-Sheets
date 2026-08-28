@@ -103,6 +103,26 @@ across the extension and backend — see `shared/README.md`.
   the token to fetch every sheet's raw cell values and formulas via the
   Google Sheets API. Returns `401` for an invalid/expired token, `403` if the
   account can't access that spreadsheet, `404` if it doesn't exist.
+- `POST /sheets/{spreadsheet_id}/structure` — same request/error shape as
+  `/raw`, but returns a normalized `SpreadsheetStructure` (see
+  `backend/analysis/structure.py`): sheet list (name, dimensions,
+  hidden/visible), per-sheet column headers with an inferred type
+  (`text`/`number`/`date`/`currency`/`formula`/`mixed`/`empty`), every
+  formula's cell reference, named ranges, merged cells, and basic stats
+  (total rows, non-empty cells, % empty).
+
+### Testing the backend
+
+```bash
+cd backend
+pip install -r requirements-dev.txt
+pytest
+```
+
+`backend/analysis/structure.py`'s unit tests run against a fixture spreadsheet
+at `backend/tests/fixtures/sales_sheet_raw.json` (a mock "Sales" sheet with 9
+data rows, a formula column, a duplicate row, and a hidden "Notes" sheet with
+a merged cell) — no network access or real Google credentials needed.
 
 ## Running both together
 

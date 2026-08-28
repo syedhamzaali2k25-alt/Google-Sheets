@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from analysis.structure import SpreadsheetStructure, build_spreadsheet_structure
 from app.auth import TokenVerificationError, verify_access_token
 from app.google_sheets import SheetsAccessError, fetch_spreadsheet_raw
 
@@ -55,3 +56,13 @@ def get_spreadsheet_raw(spreadsheet_id: str, payload: AccessTokenRequest) -> dic
         return fetch_spreadsheet_raw(payload.access_token, spreadsheet_id)
     except SheetsAccessError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+
+
+@app.post("/sheets/{spreadsheet_id}/structure", response_model=SpreadsheetStructure)
+def get_spreadsheet_structure(spreadsheet_id: str, payload: AccessTokenRequest) -> SpreadsheetStructure:
+    try:
+        raw = fetch_spreadsheet_raw(payload.access_token, spreadsheet_id)
+    except SheetsAccessError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+
+    return build_spreadsheet_structure(raw)
