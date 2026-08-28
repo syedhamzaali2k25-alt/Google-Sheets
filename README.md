@@ -42,6 +42,10 @@ down to one extension id, set `EXTENSION_ORIGIN` before starting the server:
 EXTENSION_ORIGIN=chrome-extension://<your-extension-id> uvicorn app.main:app --reload --port 8000
 ```
 
+Optionally set `ANTHROPIC_API_KEY` to enable AI-polished documentation from
+`POST /sheets/{spreadsheet_id}/documentation` (see the API section below) —
+everything else works with no key set.
+
 ## Extension
 
 ```bash
@@ -120,6 +124,21 @@ across the extension and backend — see `shared/README.md`.
   range, and a recommendation), sorted highest-severity first. Same
   401/403/404 error handling as `/raw`; a `weights` object whose values sum
   to zero returns `400`.
+- `POST /sheets/{spreadsheet_id}/documentation` — body `{"access_token":
+  "..."}`; runs the `SpreadsheetStructure` through
+  `backend/analysis/documentation.py` to produce a `SpreadsheetDocumentation`:
+  a one-paragraph summary per sheet (what it contains, row count, key
+  columns, formulas in plain language — e.g. "Total is calculated from Units
+  × Unit Price"), detected cross-sheet relationships (a column name shared by
+  two or more sheets), and a workbook-level "what this appears to do"
+  summary. Same 401/403/404 error handling as `/raw`.
+
+  This is rule-based by default (`source: "rule_based"`, no network calls).
+  If `ANTHROPIC_API_KEY` is set in the backend's environment, the draft is
+  sent to Claude to be rewritten into more natural prose covering the same
+  facts (`source: "ai_enhanced"`); if the key is unset or the call fails for
+  any reason, the endpoint silently falls back to the rule-based version —
+  it never errors because of the AI step.
 
 ### Testing the backend
 

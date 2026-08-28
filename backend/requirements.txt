@@ -4,3 +4,4 @@ httpx>=0.28,<0.29
 google-api-python-client>=2.199,<3
 google-auth>=2.57,<3
 google-auth-httplib2>=0.4,<0.5
+anthropic>=1.2,<2

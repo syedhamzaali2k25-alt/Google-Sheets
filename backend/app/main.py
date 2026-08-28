@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from analysis.documentation import SpreadsheetDocumentation, build_documentation
 from analysis.health_score import CategoryWeights, HealthReport, compute_health_report
 from analysis.structure import SpreadsheetStructure, build_spreadsheet_structure
 from app.auth import TokenVerificationError, verify_access_token
@@ -86,3 +87,14 @@ def get_spreadsheet_health(spreadsheet_id: str, payload: HealthReportRequest) ->
         return compute_health_report(structure, raw, weights=payload.weights)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/sheets/{spreadsheet_id}/documentation", response_model=SpreadsheetDocumentation)
+def get_spreadsheet_documentation(spreadsheet_id: str, payload: AccessTokenRequest) -> SpreadsheetDocumentation:
+    try:
+        raw = fetch_spreadsheet_raw(payload.access_token, spreadsheet_id)
+    except SheetsAccessError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+
+    structure = build_spreadsheet_structure(raw)
+    return build_documentation(structure)
