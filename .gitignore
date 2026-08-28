@@ -1,0 +1,16 @@
+# OS
+.DS_Store
+
+# Extension (Node/Vite)
+extension/node_modules/
+extension/dist/
+extension/dist-ssr/
+extension/*.local
+extension/*.tsbuildinfo
+
+# Backend (Python)
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/.env

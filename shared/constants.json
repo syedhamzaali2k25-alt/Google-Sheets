@@ -1,0 +1,7 @@
+{
+  "backendBaseUrl": "http://localhost:8000",
+  "healthCheckPath": "/health",
+  "extensionOrigins": [
+    "chrome-extension://__EXTENSION_ID__"
+  ]
+}
