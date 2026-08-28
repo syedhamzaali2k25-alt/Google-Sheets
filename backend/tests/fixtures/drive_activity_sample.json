@@ -1,0 +1,54 @@
+{
+  "activities": [
+    {
+      "primaryActionDetail": {"create": {}},
+      "actors": [{"user": {"knownUser": {"personName": "people/100", "isCurrentUser": true}}}],
+      "timestamp": "2024-05-01T09:00:00.000Z"
+    },
+    {
+      "primaryActionDetail": {"edit": {}},
+      "actors": [{"user": {"knownUser": {"personName": "people/200", "isCurrentUser": false}}}],
+      "timestamp": "2024-05-02T10:00:00.000Z"
+    },
+    {
+      "primaryActionDetail": {"edit": {}},
+      "actors": [{"user": {"knownUser": {"personName": "people/200", "isCurrentUser": false}}}],
+      "timestamp": "2024-05-02T10:02:00.000Z"
+    },
+    {
+      "primaryActionDetail": {"edit": {}},
+      "actors": [{"user": {"knownUser": {"personName": "people/200", "isCurrentUser": false}}}],
+      "timestamp": "2024-05-02T10:04:00.000Z"
+    },
+    {
+      "primaryActionDetail": {"edit": {}},
+      "actors": [{"user": {"knownUser": {"personName": "people/200", "isCurrentUser": false}}}],
+      "timestamp": "2024-05-02T10:06:00.000Z"
+    },
+    {
+      "primaryActionDetail": {"edit": {}},
+      "actors": [{"user": {"knownUser": {"personName": "people/200", "isCurrentUser": false}}}],
+      "timestamp": "2024-05-02T10:08:00.000Z"
+    },
+    {
+      "primaryActionDetail": {"edit": {}},
+      "actors": [{"user": {"knownUser": {"personName": "people/100", "isCurrentUser": true}}}],
+      "timestamp": "2024-05-03T14:00:00.000Z"
+    },
+    {
+      "primaryActionDetail": {"rename": {}},
+      "actors": [{"user": {"knownUser": {"personName": "people/100", "isCurrentUser": true}}}],
+      "timestamp": "2024-05-03T14:05:00.000Z"
+    },
+    {
+      "primaryActionDetail": {"permissionChange": {}},
+      "actors": [{"user": {"knownUser": {"personName": "people/200", "isCurrentUser": false}}}],
+      "timestamp": "2024-05-04T08:00:00.000Z"
+    },
+    {
+      "primaryActionDetail": {"delete": {}},
+      "actors": [{"user": {"knownUser": {"personName": "people/200", "isCurrentUser": false}}}],
+      "timestamp": "2024-05-05T23:59:00.000Z"
+    }
+  ]
+}

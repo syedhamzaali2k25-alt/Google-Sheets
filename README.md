@@ -83,13 +83,14 @@ which requires an OAuth client registered with Google:
 2. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials),
    create an OAuth 2.0 Client ID of type **Chrome Extension**, using that
    extension id.
-3. Enable the **Google Sheets API** and **Google Drive API** for the project.
+3. Enable the **Google Sheets API**, **Google Drive API**, and **Google
+   Drive Activity API** for the project.
 4. Copy the generated client id into `extension/manifest.config.ts`
    (`oauth2.client_id`), replacing the `YOUR_GOOGLE_OAUTH_CLIENT_ID...`
    placeholder, and rebuild the extension.
 
-The extension requests two read-only scopes:
-`spreadsheets.readonly` and `drive.metadata.readonly` (see
+The extension requests three read-only scopes: `spreadsheets.readonly`,
+`drive.metadata.readonly`, and `drive.activity.readonly` (see
 `shared/constants.json` → `googleOAuthScopes`).
 
 ## Shared
@@ -139,6 +140,24 @@ across the extension and backend — see `shared/README.md`.
   facts (`source: "ai_enhanced"`); if the key is unset or the call fails for
   any reason, the endpoint silently falls back to the rule-based version —
   it never errors because of the AI step.
+- `GET /sheets/{spreadsheet_id}/changes?days=30` — the access token goes in
+  an `Authorization: Bearer <token>` header instead of the body (this is the
+  one `GET` endpoint, and tokens don't belong in query strings/logs). Calls
+  the **Google Drive Activity API** (`backend/analysis/change_history.py`)
+  for the last `days` days (1-365, default 30) and returns a
+  `ChangeHistoryReport`: total edit count, contributors with their edit
+  counts (identified by Drive's opaque `people/...` id — resolving that to a
+  name/email needs the People API, which isn't wired up here), and
+  "unusual activity" flags (the file being deleted, sharing/permission
+  changes, and bursts of 5+ edits by one person within 10 minutes).
+
+  The Drive Activity API only reports **file-level** activity for a Sheets
+  file — it has no concept of which sheet or cell range was touched. So
+  `touched_ranges` is always empty and `data_granularity` is always
+  `"file_level"` with a `limited_data_warning` explaining why, rather than
+  the endpoint pretending to have range-level detail it doesn't have. Same
+  401/403/404 error handling as the other endpoints; an out-of-range `days`
+  returns `400`.
 
 ### Testing the backend
 
@@ -153,8 +172,10 @@ Unit tests run against a fixture spreadsheet at
 data rows, a formula column, a duplicate row, a formula error (`#DIV/0!`), an
 empty column, a column with no header, and a fake email address, plus a
 hidden "Notes" sheet with a merged cell — exercising every health-score
-category and every structure check without any network access or real
-Google credentials.
+category and every structure check — plus a mock Drive Activity API
+response at `backend/tests/fixtures/drive_activity_sample.json` covering
+two contributors, a burst of edits, a permission change, and a delete.
+None of it needs network access or real Google credentials.
 
 ## Running both together
 

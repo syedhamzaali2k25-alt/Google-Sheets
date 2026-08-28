@@ -1,14 +1,24 @@
 import os
+from datetime import datetime, timedelta, timezone
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
+from analysis.change_history import (
+    ChangeHistoryAccessError,
+    ChangeHistoryReport,
+    fetch_change_activity,
+    summarize_change_history,
+)
 from analysis.documentation import SpreadsheetDocumentation, build_documentation
 from analysis.health_score import CategoryWeights, HealthReport, compute_health_report
 from analysis.structure import SpreadsheetStructure, build_spreadsheet_structure
 from app.auth import TokenVerificationError, verify_access_token
 from app.google_sheets import SheetsAccessError, fetch_spreadsheet_raw
+
+bearer_scheme = HTTPBearer()
 
 # A packed (non-dev) Chrome extension has a fixed origin of the form
 # chrome-extension://<extension-id>. During local development the unpacked
@@ -98,3 +108,25 @@ def get_spreadsheet_documentation(spreadsheet_id: str, payload: AccessTokenReque
 
     structure = build_spreadsheet_structure(raw)
     return build_documentation(structure)
+
+
+@app.get("/sheets/{spreadsheet_id}/changes", response_model=ChangeHistoryReport)
+def get_spreadsheet_changes(
+    spreadsheet_id: str,
+    days: int = 30,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+) -> ChangeHistoryReport:
+    if not 1 <= days <= 365:
+        raise HTTPException(status_code=400, detail="`days` must be between 1 and 365.")
+
+    window_end = datetime.now(timezone.utc)
+    window_start = window_end - timedelta(days=days)
+
+    try:
+        activity_response = fetch_change_activity(
+            credentials.credentials, spreadsheet_id, since=window_start, until=window_end
+        )
+    except ChangeHistoryAccessError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+
+    return summarize_change_history(activity_response, spreadsheet_id, window_start, window_end)

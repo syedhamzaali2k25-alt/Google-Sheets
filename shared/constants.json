@@ -4,11 +4,13 @@
   "authVerifyPath": "/auth/verify",
   "sheetsRawPathTemplate": "/sheets/{spreadsheetId}/raw",
   "sheetsStructurePathTemplate": "/sheets/{spreadsheetId}/structure",
+  "sheetsChangesPathTemplate": "/sheets/{spreadsheetId}/changes",
   "extensionOrigins": [
     "chrome-extension://__EXTENSION_ID__"
   ],
   "googleOAuthScopes": [
     "https://www.googleapis.com/auth/spreadsheets.readonly",
-    "https://www.googleapis.com/auth/drive.metadata.readonly"
+    "https://www.googleapis.com/auth/drive.metadata.readonly",
+    "https://www.googleapis.com/auth/drive.activity.readonly"
   ]
 }
