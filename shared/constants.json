@@ -4,6 +4,8 @@
   "authVerifyPath": "/auth/verify",
   "sheetsRawPathTemplate": "/sheets/{spreadsheetId}/raw",
   "sheetsStructurePathTemplate": "/sheets/{spreadsheetId}/structure",
+  "sheetsHealthPathTemplate": "/sheets/{spreadsheetId}/health",
+  "sheetsDocumentationPathTemplate": "/sheets/{spreadsheetId}/documentation",
   "sheetsChangesPathTemplate": "/sheets/{spreadsheetId}/changes",
   "extensionOrigins": [
     "chrome-extension://__EXTENSION_ID__"

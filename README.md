@@ -63,15 +63,46 @@ npm run dev
 
 The extension has:
 
-- **Popup** (`src/popup`) — pings the backend's `/health` endpoint on open and
-  shows whether it's reachable, plus a "Connect Google Account" button that
-  runs the OAuth flow and verifies the resulting token with the backend.
+- **Popup** (`src/popup`) — pings the backend's `/health` endpoint on open,
+  a "Connect Google Account" button that runs the OAuth flow and verifies
+  the resulting token with the backend, and an "Analyze Sheet" button that
+  reads the active tab's URL (via the `activeTab` permission) for a Google
+  Sheets id and opens the dashboard in a new tab.
+- **Dashboard** (`src/dashboard`) — a full-tab page (`chrome.tabs.create()`,
+  not the cramped popup window) styled with Tailwind CSS. It reads
+  `?spreadsheetId=...` from its own URL, gets a Google access token
+  (reusing the popup's cached token where possible), then calls the health,
+  documentation, and change-history endpoints **in parallel**
+  (`Promise.allSettled`, so one endpoint failing doesn't block the other
+  two) and renders three tabs:
+  - **Dashboard** — the overall health score as a ring gauge, the five
+    category scores as bars, and findings grouped by severity
+    (high/medium/low), each with its cell range and recommended action.
+  - **Documentation** — the workbook summary, one card per sheet, detected
+    cross-sheet relationships, and a badge showing whether it's rule-based
+    or AI-enhanced.
+  - **Change Analytics** — total edits, a bar chart of activity per day,
+    top contributors, unusual-activity flags, and the API's
+    `limited_data_warning` surfaced verbatim when the Drive Activity API
+    could only provide file-level data.
+
+  Every tab shows its own error state independently if its endpoint call
+  failed (a backend error's `detail` message is shown directly — e.g. a
+  future row-count limit returning "This sheet has too many rows to
+  analyze in the free tier" would render as-is), and there's a top-level
+  loading state while the three calls are in flight and a "no spreadsheet
+  selected" state if the dashboard is opened without the query param.
 - **Content script** (`src/content/content-script.ts`) — injected into
   `docs.google.com/spreadsheets/*` and `sheets.google.com/*`, currently just
   logs that it loaded.
 
 Run the backend first (or update `shared/constants.json` if it's hosted
 elsewhere) so the popup's status check has something to reach.
+
+The dashboard is a second build entry, not referenced anywhere in the
+manifest (it's only ever opened via `chrome.tabs.create()`), so it's added
+directly to `vite.config.ts`'s `build.rollupOptions.input` rather than being
+auto-discovered by `@crxjs/vite-plugin` the way the popup is.
 
 ### Google OAuth setup
 
@@ -187,3 +218,7 @@ None of it needs network access or real Google credentials.
    success the popup shows "Verified with backend."
 5. Open a Google Sheet and check the browser console for the content
    script's log line.
+6. With that Google Sheet's tab active, click the popup's "Analyze Sheet"
+   button — it opens the dashboard in a new tab, which authenticates, loads
+   the health/documentation/change-history data in parallel, and shows the
+   Dashboard / Documentation / Change Analytics tabs.
