@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import datetime, timedelta, timezone
 
@@ -6,19 +7,25 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from analysis.change_history import (
     ChangeHistoryAccessError,
     ChangeHistoryReport,
-    fetch_change_activity,
+    fetch_change_activity_cached,
     summarize_change_history,
 )
 from analysis.documentation import SpreadsheetDocumentation, build_documentation
 from analysis.export import generate_pdf_report
 from analysis.health_score import CategoryWeights, HealthReport, compute_health_report
 from analysis.structure import SpreadsheetStructure, build_spreadsheet_structure
-from app.auth import TokenVerificationError, verify_access_token
-from app.google_sheets import SheetsAccessError, fetch_spreadsheet_raw
+from app.auth import TokenVerificationError, get_user_email_sync, verify_access_token
+from app.db import get_db
+from app.google_sheets import SheetsAccessError, fetch_spreadsheet_raw_cached
+from app.rate_limit import DEFAULT_BURST, DEFAULT_REQUESTS_PER_MINUTE, RateLimiter, RateLimitMiddleware
+from app.repository import get_or_create_user, save_report
+
+logger = logging.getLogger(__name__)
 
 bearer_scheme = HTTPBearer()
 
@@ -30,6 +37,18 @@ EXTENSION_ORIGIN = os.getenv("EXTENSION_ORIGIN")
 
 app = FastAPI(title="Google Sheet Insights Backend")
 
+# Named so tests can reset it between runs — this limiter is a singleton
+# for the process's lifetime, shared by every request the app instance
+# handles (see RateLimiter.reset()'s docstring).
+rate_limiter = RateLimiter(DEFAULT_REQUESTS_PER_MINUTE, DEFAULT_BURST)
+
+# Starlette applies middleware outside-in in the *reverse* of add_middleware
+# call order — the last one added ends up outermost. RateLimitMiddleware
+# must be added before CORSMiddleware so CORS stays outermost and still
+# attaches its headers to a 429 the rate limiter short-circuits, rather
+# than the browser reporting a confusing CORS failure instead of the real
+# "too many requests" response.
+app.add_middleware(RateLimitMiddleware, limiter=rate_limiter)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[EXTENSION_ORIGIN] if EXTENSION_ORIGIN else [],
@@ -77,7 +96,7 @@ async def verify_auth(payload: AccessTokenRequest) -> dict:
 @app.post("/sheets/{spreadsheet_id}/raw")
 def get_spreadsheet_raw(spreadsheet_id: str, payload: AccessTokenRequest) -> dict:
     try:
-        return fetch_spreadsheet_raw(payload.access_token, spreadsheet_id)
+        return fetch_spreadsheet_raw_cached(payload.access_token, spreadsheet_id)
     except SheetsAccessError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
 
@@ -85,7 +104,7 @@ def get_spreadsheet_raw(spreadsheet_id: str, payload: AccessTokenRequest) -> dic
 @app.post("/sheets/{spreadsheet_id}/structure", response_model=SpreadsheetStructure)
 def get_spreadsheet_structure(spreadsheet_id: str, payload: AccessTokenRequest) -> SpreadsheetStructure:
     try:
-        raw = fetch_spreadsheet_raw(payload.access_token, spreadsheet_id)
+        raw = fetch_spreadsheet_raw_cached(payload.access_token, spreadsheet_id)
     except SheetsAccessError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
 
@@ -93,23 +112,46 @@ def get_spreadsheet_structure(spreadsheet_id: str, payload: AccessTokenRequest) 
 
 
 @app.post("/sheets/{spreadsheet_id}/health", response_model=HealthReport)
-def get_spreadsheet_health(spreadsheet_id: str, payload: HealthReportRequest) -> HealthReport:
+def get_spreadsheet_health(
+    spreadsheet_id: str, payload: HealthReportRequest, db: Session = Depends(get_db)
+) -> HealthReport:
     try:
-        raw = fetch_spreadsheet_raw(payload.access_token, spreadsheet_id)
+        raw = fetch_spreadsheet_raw_cached(payload.access_token, spreadsheet_id)
     except SheetsAccessError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
 
     structure = build_spreadsheet_structure(raw)
     try:
-        return compute_health_report(structure, raw, weights=payload.weights)
+        health = compute_health_report(structure, raw, weights=payload.weights)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    _persist_report_best_effort(db, payload.access_token, spreadsheet_id, raw.get("title") or "", health)
+    return health
+
+
+def _persist_report_best_effort(
+    db: Session, access_token: str, spreadsheet_id: str, spreadsheet_title: str, health: HealthReport
+) -> None:
+    """Records this health report so scores can be tracked over time.
+    Never lets a persistence failure (DB down, email scope not granted,
+    etc.) fail the request that already has a perfectly good report to
+    return — this is a side effect, not the point of the endpoint.
+    """
+    try:
+        email = get_user_email_sync(access_token)
+        if not email:
+            return
+        user = get_or_create_user(db, email)
+        save_report(db, user, spreadsheet_id, spreadsheet_title, health)
+    except Exception:
+        logger.exception("Failed to persist health report for spreadsheet %s.", spreadsheet_id)
 
 
 @app.post("/sheets/{spreadsheet_id}/documentation", response_model=SpreadsheetDocumentation)
 def get_spreadsheet_documentation(spreadsheet_id: str, payload: AccessTokenRequest) -> SpreadsheetDocumentation:
     try:
-        raw = fetch_spreadsheet_raw(payload.access_token, spreadsheet_id)
+        raw = fetch_spreadsheet_raw_cached(payload.access_token, spreadsheet_id)
     except SheetsAccessError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
 
@@ -130,7 +172,7 @@ def get_spreadsheet_changes(
     window_start = window_end - timedelta(days=days)
 
     try:
-        activity_response = fetch_change_activity(
+        activity_response = fetch_change_activity_cached(
             credentials.credentials, spreadsheet_id, since=window_start, until=window_end
         )
     except ChangeHistoryAccessError as exc:
@@ -145,7 +187,7 @@ def export_spreadsheet_report(spreadsheet_id: str, payload: ExportRequest) -> Re
         raise HTTPException(status_code=400, detail="`days` must be between 1 and 365.")
 
     try:
-        raw = fetch_spreadsheet_raw(payload.access_token, spreadsheet_id)
+        raw = fetch_spreadsheet_raw_cached(payload.access_token, spreadsheet_id)
     except SheetsAccessError as exc:
         raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
 
@@ -156,7 +198,7 @@ def export_spreadsheet_report(spreadsheet_id: str, payload: ExportRequest) -> Re
     window_end = datetime.now(timezone.utc)
     window_start = window_end - timedelta(days=payload.days)
     try:
-        activity_response = fetch_change_activity(
+        activity_response = fetch_change_activity_cached(
             payload.access_token, spreadsheet_id, since=window_start, until=window_end
         )
     except ChangeHistoryAccessError as exc:

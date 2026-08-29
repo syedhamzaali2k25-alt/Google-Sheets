@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { ChangeHistoryReport, HealthReport, SpreadsheetDocumentation } from "@shared/types";
+import { ErrorBoundary } from "../lib/ErrorBoundary";
 import { getGoogleAccessToken, GoogleAuthError } from "../lib/googleAuth";
 import { fetchChanges, fetchDocumentation, fetchHealth } from "./api";
 import { CategoryScoreBars } from "./components/CategoryScoreBars";
 import { ChangeAnalyticsPanel } from "./components/ChangeAnalyticsPanel";
+import { DashboardSkeleton } from "./components/DashboardSkeleton";
 import { DocumentationPanel } from "./components/DocumentationPanel";
 import { FindingsList } from "./components/FindingsList";
 import { HealthGauge } from "./components/HealthGauge";
 import { ShareReportButton } from "./components/ShareReportButton";
-import { ErrorBanner, LoadingSpinner } from "./components/StatusViews";
+import { ErrorBanner } from "./components/StatusViews";
 import { Tabs, type TabKey } from "./components/Tabs";
 
 type PanelState<T> = { status: "success"; data: T } | { status: "error"; error: string };
@@ -122,11 +124,7 @@ function App() {
   }
 
   if (stage === "loading") {
-    return (
-      <CenteredCard>
-        <LoadingSpinner label="Analyzing your spreadsheet…" />
-      </CenteredCard>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (
@@ -144,35 +142,44 @@ function App() {
       <Tabs active={activeTab} onChange={setActiveTab} />
 
       <main className="mt-6">
-        {activeTab === "dashboard" &&
-          (health?.status === "success" ? (
-            <div className="space-y-6">
-              <div className="flex flex-col items-center gap-6 rounded-lg border border-slate-200 bg-white p-6 sm:flex-row sm:items-start sm:justify-between">
-                <HealthGauge score={health.data.overall_score} />
-                <CategoryScoreBars scores={health.data.category_scores} />
+        {activeTab === "dashboard" && (
+          <ErrorBoundary key="dashboard">
+            {health?.status === "success" ? (
+              <div className="space-y-6">
+                <div className="flex flex-col items-center gap-6 rounded-lg border border-slate-200 bg-white p-6 sm:flex-row sm:items-start sm:justify-between">
+                  <HealthGauge score={health.data.overall_score} />
+                  <CategoryScoreBars scores={health.data.category_scores} />
+                </div>
+                <div className="rounded-lg border border-slate-200 bg-white p-4">
+                  <h2 className="mb-3 text-sm font-semibold text-slate-800">Findings</h2>
+                  <FindingsList findings={health.data.findings} />
+                </div>
               </div>
-              <div className="rounded-lg border border-slate-200 bg-white p-4">
-                <h2 className="mb-3 text-sm font-semibold text-slate-800">Findings</h2>
-                <FindingsList findings={health.data.findings} />
-              </div>
-            </div>
-          ) : (
-            <ErrorBanner message={health?.error ?? "Could not compute the health score."} />
-          ))}
+            ) : (
+              <ErrorBanner message={health?.error ?? "Could not compute the health score."} />
+            )}
+          </ErrorBoundary>
+        )}
 
-        {activeTab === "documentation" &&
-          (documentation?.status === "success" ? (
-            <DocumentationPanel documentation={documentation.data} />
-          ) : (
-            <ErrorBanner message={documentation?.error ?? "Could not generate documentation."} />
-          ))}
+        {activeTab === "documentation" && (
+          <ErrorBoundary key="documentation">
+            {documentation?.status === "success" ? (
+              <DocumentationPanel documentation={documentation.data} />
+            ) : (
+              <ErrorBanner message={documentation?.error ?? "Could not generate documentation."} />
+            )}
+          </ErrorBoundary>
+        )}
 
-        {activeTab === "changes" &&
-          (changes?.status === "success" ? (
-            <ChangeAnalyticsPanel changes={changes.data} />
-          ) : (
-            <ErrorBanner message={changes?.error ?? "Could not fetch change history."} />
-          ))}
+        {activeTab === "changes" && (
+          <ErrorBoundary key="changes">
+            {changes?.status === "success" ? (
+              <ChangeAnalyticsPanel changes={changes.data} />
+            ) : (
+              <ErrorBanner message={changes?.error ?? "Could not fetch change history."} />
+            )}
+          </ErrorBoundary>
+        )}
       </main>
     </div>
   );

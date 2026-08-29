@@ -1,8 +1,9 @@
 # google-sheet-insights
 
-Scaffolding for a Chrome extension that will surface insights inside Google
-Sheets, backed by a FastAPI service. No business logic yet — this repo just
-wires up a working popup, content script, and API that talk to each other.
+A Chrome extension that analyzes a Google Sheet — a health score, plain-English
+documentation, and edit history — and exports it all as a PDF report. React +
+TypeScript extension (Manifest V3, built with Vite) backed by a Python FastAPI
+service.
 
 ## Structure
 
@@ -16,6 +17,29 @@ shared/      Types/constants used by both the extension and the backend
 
 - Node.js 20+ and npm
 - Python 3.11+
+- (Optional) PostgreSQL — see [Persistence](#persistence-users--report-history) below. SQLite works with zero setup.
+
+## Environment variables
+
+All backend configuration is via environment variables (or a `backend/.env`
+loaded by your shell — there's no `.env.example` checked in, since every
+variable below has a workable default for local development). None are
+required to get the backend running; set what you need.
+
+| Variable | Required? | Default | Purpose |
+| --- | --- | --- | --- |
+| `EXTENSION_ORIGIN` | No | any `chrome-extension://*` origin allowed | Lock CORS down to one extension id (`chrome-extension://<id>`) instead of any unpacked extension. |
+| `ANTHROPIC_API_KEY` | No | unset (rule-based documentation only) | Enables AI-polished prose for `POST /sheets/{id}/documentation`. Falls back silently to rule-based text if unset or if the call fails. |
+| `DATABASE_URL` | No | `sqlite:///./dev.db` | Where health reports are persisted. Point this at Postgres in any real deployment, e.g. `postgresql+psycopg://user:password@host:5432/dbname`. |
+| `RATE_LIMIT_REQUESTS_PER_MINUTE` | No | `60` | Token-bucket refill rate per client IP. |
+| `RATE_LIMIT_BURST` | No | `20` | Token-bucket capacity per client IP (also the max burst before a `429`). |
+
+There is **no Google OAuth client secret to configure on the backend** — the
+extension authenticates via `chrome.identity.getAuthToken`, which uses a
+"Chrome Extension" type OAuth client that is a public client (id only, no
+secret). The client id lives in `extension/manifest.config.ts`, not in an
+environment variable — see [Google OAuth setup](#google-oauth-setup) below
+for how to obtain and register one.
 
 ## Backend
 
@@ -24,6 +48,7 @@ cd backend
 python3 -m venv .venv
 source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+alembic upgrade head            # creates the users/reports tables (SQLite by default)
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -33,6 +58,11 @@ Verify it's up:
 curl http://localhost:8000/health
 # {"status":"ok","service":"google-sheet-insights-backend"}
 ```
+
+`/health` is exempt from rate limiting; every other endpoint allows a burst of
+`RATE_LIMIT_BURST` requests and refills at `RATE_LIMIT_REQUESTS_PER_MINUTE`
+per minute per client IP, returning `429` with a `Retry-After` header once
+exhausted (see [Rate limiting & caching](#rate-limiting--caching)).
 
 CORS is enabled for `chrome-extension://*` origins by default (fine for local
 development, where the unpacked extension's id varies by machine). To lock it
@@ -45,6 +75,50 @@ EXTENSION_ORIGIN=chrome-extension://<your-extension-id> uvicorn app.main:app --r
 Optionally set `ANTHROPIC_API_KEY` to enable AI-polished documentation from
 `POST /sheets/{spreadsheet_id}/documentation` (see the API section below) —
 everything else works with no key set.
+
+### Persistence (users & report history)
+
+Every `POST /sheets/{id}/health` call best-effort records a `Report` row
+(spreadsheet id/title, overall score, per-category scores, timestamp) against
+a `User` looked up/created by the email in the caller's Google token — the
+schema needed for a future "score history over time" Pro feature, even though
+nothing reads that history back yet (see [What's stubbed](#whats-stubbed--mocked)).
+This never blocks or fails the health-score response itself: if the database
+is unreachable, or the token lacks the `userinfo.email` scope, the report is
+silently skipped and only logged.
+
+Schema lives in `backend/app/models.py`, managed with Alembic:
+
+```bash
+cd backend
+alembic upgrade head                 # apply migrations (run once after cloning, and after pulling new ones)
+alembic revision --autogenerate -m "description"   # after changing app/models.py — always review the generated file before committing
+```
+
+Defaults to a local SQLite file (`backend/dev.db`, gitignored) so there's
+nothing to install for local dev. To use Postgres instead, set `DATABASE_URL`
+before running either `alembic upgrade head` or `uvicorn`:
+
+```bash
+export DATABASE_URL=postgresql+psycopg://user:password@localhost:5432/sheet_insights
+alembic upgrade head
+uvicorn app.main:app --reload --port 8000
+```
+
+### Rate limiting & caching
+
+- **Rate limiting** (`app/rate_limit.py`) — an in-process token-bucket per
+  client IP, applied as ASGI middleware ahead of every route except `/health`.
+  Single-process only; a multi-worker deployment would need a shared store
+  (e.g. Redis) for one limit to hold across all workers.
+- **Caching** (`app/cache.py`) — re-analyzing the same unchanged spreadsheet
+  doesn't re-hit the Google Sheets API: the raw sheet fetch is cached keyed by
+  spreadsheet id *and* a one-way fingerprint of the caller's access token
+  (never the resource id alone, so a cache hit can never leak one user's data
+  to another), invalidated the moment Google Drive's `modifiedTime` for that
+  file changes — not a blind TTL. Change-activity lookups use a shorter
+  pure-TTL cache (2 minutes) since Drive Activity has no equivalent revision
+  marker. Also single-process/in-memory for now.
 
 ## Extension
 
@@ -94,9 +168,17 @@ The extension has:
   Every tab shows its own error state independently if its endpoint call
   failed (a backend error's `detail` message is shown directly — e.g. a
   future row-count limit returning "This sheet has too many rows to
-  analyze in the free tier" would render as-is), and there's a top-level
-  loading state while the three calls are in flight and a "no spreadsheet
-  selected" state if the dashboard is opened without the query param.
+  analyze in the free tier" would render as-is), a skeleton placeholder
+  (`components/DashboardSkeleton.tsx`) shows while the three calls are in
+  flight instead of a bare spinner, and there's a "no spreadsheet selected"
+  state if the dashboard is opened without the query param.
+
+  Both the popup and the dashboard are wrapped in a top-level React error
+  boundary (`src/lib/ErrorBoundary.tsx`) so an unexpected rendering crash
+  shows a "Something went wrong" fallback with a reload/retry button instead
+  of a blank page; each dashboard tab also has its own inner error boundary,
+  so a crash in one tab's rendering doesn't take down the other two or the
+  header's Share Report button.
 - **Content script** (`src/content/content-script.ts`) — injected into
   `docs.google.com/spreadsheets/*` and `sheets.google.com/*`, currently just
   logs that it loaded.
@@ -122,12 +204,16 @@ which requires an OAuth client registered with Google:
 3. Enable the **Google Sheets API**, **Google Drive API**, and **Google
    Drive Activity API** for the project.
 4. Copy the generated client id into `extension/manifest.config.ts`
-   (`oauth2.client_id`), replacing the `YOUR_GOOGLE_OAUTH_CLIENT_ID...`
-   placeholder, and rebuild the extension.
+   (`oauth2.client_id`), replacing the existing value (a client id
+   registered for development — a "Chrome Extension" OAuth client has no
+   secret, so there's nothing else to configure), and rebuild the extension.
 
-The extension requests three read-only scopes: `spreadsheets.readonly`,
-`drive.metadata.readonly`, and `drive.activity.readonly` (see
-`shared/constants.json` → `googleOAuthScopes`).
+The extension requests four read-only scopes: `spreadsheets.readonly`,
+`drive.metadata.readonly`, `drive.activity.readonly`, and `userinfo.email`
+(the last one lets the backend attribute a health report to a user for the
+persistence layer — see [Persistence](#persistence-users--report-history) —
+without granting access to any other profile data). See
+`shared/constants.json` → `googleOAuthScopes`.
 
 ## Shared
 
@@ -228,7 +314,15 @@ response at `backend/tests/fixtures/drive_activity_sample.json` covering
 two contributors, a burst of edits, a permission change, and a delete. The
 PDF export tests build a real report from those same fixtures and check
 its content with `pypdf` (extracted text, not just "produced valid bytes").
-None of it needs network access or real Google credentials.
+None of it needs network access or real Google credentials, and none of it
+touches Postgres — persistence tests use an in-memory SQLite database.
+
+`tests/test_integration_e2e.py` is the top-level check that the whole thing
+actually works together: it drives one mock spreadsheet through the real
+FastAPI app (`raw` → `health` → `documentation` → `changes` → `export`),
+the same sequence the dashboard performs, and asserts on the final PDF's
+extracted text — plus that the raw-sheet cache collapsed what would
+otherwise be four separate Google Sheets API calls into one.
 
 ## Running both together
 
@@ -246,3 +340,41 @@ None of it needs network access or real Google credentials.
    Dashboard / Documentation / Change Analytics tabs.
 7. Click "Share Report" in the dashboard's header to download the combined
    PDF.
+
+## What's stubbed / mocked
+
+Not exhaustive, but the gaps most likely to matter before a real pilot user
+tries this:
+
+- **Report history isn't surfaced anywhere.** `/health` records a `Report`
+  row per call (score, category scores, timestamp), but there is no endpoint
+  or UI reading it back — no "score over time" chart, no list of past
+  reports. The schema (`app/models.py`) and storage (`app/repository.py`)
+  exist; the "Pro" feature built on top of them does not.
+- **No real user accounts/login.** A `User` row is an email address, looked
+  up (and silently created) by whatever Google account granted the token —
+  there's no signup flow, session, or way for a user to see their own
+  account.
+- **Contributor identity is Drive's opaque `people/...` id, not a name or
+  email.** Resolving it needs the Google People API, which isn't wired up;
+  the dashboard and PDF show the raw id.
+- **Change history is file-level only**, not per-sheet or per-cell — a
+  known and explained limitation of the Drive Activity API
+  (`data_granularity: "file_level"`, plus a `limited_data_warning` in the
+  API response), not something the extension hides.
+- **AI-enhanced documentation is best-effort and optional.** With no
+  `ANTHROPIC_API_KEY`, or if the Claude call fails for any reason,
+  everything still works via the rule-based writer — there's no user-facing
+  indication beyond the `source` field that this happened.
+- **Caching and rate limiting are single-process/in-memory.** Fine for one
+  backend instance; a multi-worker or multi-instance deployment would need
+  a shared store (Redis, most likely) for either to actually hold across
+  workers — see [Rate limiting & caching](#rate-limiting--caching).
+- **No production deployment config.** No Dockerfile, no Postgres
+  connection pooling/managed-instance setup, no HTTPS termination, no
+  extension packaging/publishing to the Chrome Web Store — this is a local
+  dev + unpacked-extension setup end to end.
+- **No automated end-to-end test against a *real* Google account.** The
+  integration test (and everything else in the test suite) runs against
+  fixture JSON, not a live Sheets/Drive API call — there's no CI job that
+  exercises real OAuth or real Google data.

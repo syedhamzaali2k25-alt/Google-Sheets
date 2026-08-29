@@ -27,6 +27,19 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from pydantic import BaseModel
 
+from app.cache import RevisionCache, token_fingerprint
+
+# Unlike the raw-sheet cache, there's no cheap "has this changed" check for
+# Drive activity (querying activity *is* the expensive call), so this is a
+# short pure-TTL cache — just long enough to absorb back-to-back requests
+# for the same window (e.g. loading the dashboard, then immediately
+# exporting a PDF for the same spreadsheet) without serving stale data for
+# long if something genuinely changed. The cache key is scoped to a
+# fingerprint of the caller's token (see app/cache.py) for the same
+# authorization reason as the raw-sheet cache.
+_ACTIVITY_CACHE_TTL_SECONDS = 120
+_activity_cache: RevisionCache[dict] = RevisionCache(_ACTIVITY_CACHE_TTL_SECONDS)
+
 
 class ChangeHistoryAccessError(Exception):
     def __init__(self, status_code: int, message: str):
@@ -141,6 +154,29 @@ def fetch_change_activity(
         raise ChangeHistoryAccessError(401, "Google access token is invalid or expired.") from exc
 
     return {"activities": activities}
+
+
+def fetch_change_activity_cached(
+    access_token: str,
+    spreadsheet_id: str,
+    since: datetime,
+    until: datetime | None = None,
+) -> dict[str, Any]:
+    """Like fetch_change_activity, but serves a recent identical request
+    (same token, spreadsheet, and window) from cache instead of re-querying
+    the Drive Activity API. See the module-level cache comment for why the
+    TTL is short and the key includes a token fingerprint."""
+    cache_key = (
+        f"{token_fingerprint(access_token)}:{spreadsheet_id}:"
+        f"{_format_rfc3339(since)}:{_format_rfc3339(until) if until else ''}"
+    )
+    cached = _activity_cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    result = fetch_change_activity(access_token, spreadsheet_id, since, until)
+    _activity_cache.set(cache_key, result)
+    return result
 
 
 def _format_rfc3339(value: datetime) -> str:

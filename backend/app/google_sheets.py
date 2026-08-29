@@ -5,6 +5,16 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+from app.cache import RevisionCache, token_fingerprint
+
+# Keyed by "<token fingerprint>:<spreadsheet id>" (see app/cache.py for why
+# the token fingerprint has to be part of the key). TTL is generous because
+# freshness is actually enforced by the Drive modifiedTime revision check,
+# not by this timer — the timer just bounds memory for tokens that are
+# never seen again (e.g. revoked, or the user disconnects).
+_RAW_CACHE_TTL_SECONDS = 30 * 60
+_raw_cache: RevisionCache[dict[str, Any]] = RevisionCache(_RAW_CACHE_TTL_SECONDS)
+
 
 class SheetsAccessError(Exception):
     def __init__(self, status_code: int, message: str):
@@ -105,6 +115,48 @@ def fetch_spreadsheet_raw(access_token: str, spreadsheet_id: str) -> dict[str, A
         "sheets": sheets,
         "namedRanges": named_ranges,
     }
+
+
+def fetch_spreadsheet_revision(access_token: str, spreadsheet_id: str) -> str | None:
+    """Looks up a spreadsheet's Drive modifiedTime — a cheap metadata call,
+    much lighter than re-fetching the full grid — for use as a cache
+    revision marker. Returns None (rather than raising) on any failure, so
+    a caller can treat that as "can't verify freshness, skip the cache"
+    instead of failing the whole request over what is just an optimization.
+    """
+    credentials = Credentials(token=access_token)
+    service = build("drive", "v3", credentials=credentials, cache_discovery=False)
+    try:
+        result = service.files().get(fileId=spreadsheet_id, fields="modifiedTime").execute()
+    except (HttpError, RefreshError):
+        return None
+    return result.get("modifiedTime")
+
+
+def fetch_spreadsheet_raw_cached(access_token: str, spreadsheet_id: str) -> dict[str, Any]:
+    """Like fetch_spreadsheet_raw, but skips the expensive Sheets API grid
+    fetch when the spreadsheet's Drive modifiedTime hasn't changed since it
+    was last fetched with this same token.
+
+    The revision check runs on every call, cache hit or not, using the
+    *caller's own* access token — that's what makes this safe to share a
+    cache key across requests: Google itself still enforces per-user
+    authorization on that lightweight call before anything cached is
+    returned, and the cache key is additionally scoped to a fingerprint of
+    the token regardless (see app/cache.py).
+    """
+    revision = fetch_spreadsheet_revision(access_token, spreadsheet_id)
+    cache_key = f"{token_fingerprint(access_token)}:{spreadsheet_id}"
+
+    if revision is not None:
+        cached = _raw_cache.get(cache_key, revision)
+        if cached is not None:
+            return cached
+
+    raw = fetch_spreadsheet_raw(access_token, spreadsheet_id)
+    if revision is not None:
+        _raw_cache.set(cache_key, raw, revision)
+    return raw
 
 
 def _map_http_error(exc: HttpError) -> SheetsAccessError:

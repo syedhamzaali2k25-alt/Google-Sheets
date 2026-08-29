@@ -6,3 +6,6 @@ google-auth>=2.57,<3
 google-auth-httplib2>=0.4,<0.5
 anthropic>=1.2,<2
 reportlab>=5.0,<6
+sqlalchemy>=2.0,<3
+alembic>=1.19,<2
+psycopg[binary]>=3.3,<4

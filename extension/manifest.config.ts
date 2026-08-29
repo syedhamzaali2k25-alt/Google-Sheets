@@ -37,6 +37,9 @@ export default defineManifest({
       "https://www.googleapis.com/auth/spreadsheets.readonly",
       "https://www.googleapis.com/auth/drive.metadata.readonly",
       "https://www.googleapis.com/auth/drive.activity.readonly",
+      // Lets the backend identify who a health report belongs to (for the
+      // persistence layer's users/reports tables) — no other profile data.
+      "https://www.googleapis.com/auth/userinfo.email",
     ],
   },
 });

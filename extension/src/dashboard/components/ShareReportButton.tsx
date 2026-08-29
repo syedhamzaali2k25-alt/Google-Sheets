@@ -49,6 +49,9 @@ export function ShareReportButton({
         disabled={state.status === "exporting"}
         className="flex shrink-0 items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-default disabled:text-slate-400"
       >
+        {state.status === "exporting" && (
+          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-300 border-t-slate-500" />
+        )}
         {state.status === "exporting" ? "Preparing PDF…" : "Share Report"}
       </button>
       {state.status === "error" && <p className="max-w-xs text-right text-xs text-red-600">{state.message}</p>}
