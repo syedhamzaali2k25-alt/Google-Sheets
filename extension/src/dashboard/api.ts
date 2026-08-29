@@ -47,3 +47,17 @@ export async function fetchChanges(
   });
   return parseJsonOrThrow<ChangeHistoryReport>(response);
 }
+
+export async function exportReport(accessToken: string, spreadsheetId: string, days: number): Promise<Blob> {
+  const path = resolvePath(constants.sheetsExportPathTemplate, spreadsheetId);
+  const response = await fetch(`${constants.backendBaseUrl}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ access_token: accessToken, days }),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new ApiError(body?.detail ?? `Request failed (${response.status}).`);
+  }
+  return response.blob();
+}

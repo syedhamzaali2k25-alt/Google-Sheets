@@ -86,6 +86,11 @@ The extension has:
     `limited_data_warning` surfaced verbatim when the Drive Activity API
     could only provide file-level data.
 
+  A "Share Report" button in the header (once the three panels have
+  loaded) calls `POST /sheets/{spreadsheet_id}/export`, which combines all
+  three into a single PDF, and downloads it via a blob URL — no extra
+  Google permissions needed, since it reuses the token already in memory.
+
   Every tab shows its own error state independently if its endpoint call
   failed (a backend error's `detail` message is shown directly — e.g. a
   future row-count limit returning "This sheet has too many rows to
@@ -189,6 +194,21 @@ across the extension and backend — see `shared/README.md`.
   the endpoint pretending to have range-level detail it doesn't have. Same
   401/403/404 error handling as the other endpoints; an out-of-range `days`
   returns `400`.
+- `POST /sheets/{spreadsheet_id}/export` — body `{"access_token": "...",
+  "days": 30}` (`days` optional, same 1-365 range as `/changes`). Builds the
+  health report, documentation, and change history internally (one token
+  covers all three, since the extension requests all three scopes together),
+  then renders them into a single PDF with `backend/analysis/export.py`
+  (ReportLab — pure Python, no native libraries to install, unlike an
+  HTML-to-PDF renderer like WeasyPrint) and returns the PDF bytes directly
+  with `Content-Type: application/pdf` and a `Content-Disposition` download
+  header — there's no separate file-storage step or download-URL endpoint
+  to manage. The PDF has a cover page (workbook name, spreadsheet id,
+  generated date, overall score), a findings section (category scores plus
+  every finding, highest severity first), a documentation section (workbook
+  summary, per-sheet summaries, relationships), and a change activity
+  section (contributors, unusual activity, the same limited-data warning as
+  `/changes`). Same 401/403/404/400 error handling as the other endpoints.
 
 ### Testing the backend
 
@@ -205,7 +225,9 @@ empty column, a column with no header, and a fake email address, plus a
 hidden "Notes" sheet with a merged cell — exercising every health-score
 category and every structure check — plus a mock Drive Activity API
 response at `backend/tests/fixtures/drive_activity_sample.json` covering
-two contributors, a burst of edits, a permission change, and a delete.
+two contributors, a burst of edits, a permission change, and a delete. The
+PDF export tests build a real report from those same fixtures and check
+its content with `pypdf` (extracted text, not just "produced valid bytes").
 None of it needs network access or real Google credentials.
 
 ## Running both together
@@ -222,3 +244,5 @@ None of it needs network access or real Google credentials.
    button — it opens the dashboard in a new tab, which authenticates, loads
    the health/documentation/change-history data in parallel, and shows the
    Dashboard / Documentation / Change Analytics tabs.
+7. Click "Share Report" in the dashboard's header to download the combined
+   PDF.

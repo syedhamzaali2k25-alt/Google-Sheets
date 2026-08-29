@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 
@@ -13,6 +14,7 @@ from analysis.change_history import (
     summarize_change_history,
 )
 from analysis.documentation import SpreadsheetDocumentation, build_documentation
+from analysis.export import generate_pdf_report
 from analysis.health_score import CategoryWeights, HealthReport, compute_health_report
 from analysis.structure import SpreadsheetStructure, build_spreadsheet_structure
 from app.auth import TokenVerificationError, verify_access_token
@@ -45,6 +47,11 @@ class AccessTokenRequest(BaseModel):
 class HealthReportRequest(BaseModel):
     access_token: str
     weights: CategoryWeights | None = None
+
+
+class ExportRequest(BaseModel):
+    access_token: str
+    days: int = 30
 
 
 @app.get("/health")
@@ -130,3 +137,36 @@ def get_spreadsheet_changes(
         raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
 
     return summarize_change_history(activity_response, spreadsheet_id, window_start, window_end)
+
+
+@app.post("/sheets/{spreadsheet_id}/export")
+def export_spreadsheet_report(spreadsheet_id: str, payload: ExportRequest) -> Response:
+    if not 1 <= payload.days <= 365:
+        raise HTTPException(status_code=400, detail="`days` must be between 1 and 365.")
+
+    try:
+        raw = fetch_spreadsheet_raw(payload.access_token, spreadsheet_id)
+    except SheetsAccessError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+
+    structure = build_spreadsheet_structure(raw)
+    health = compute_health_report(structure, raw)
+    documentation = build_documentation(structure)
+
+    window_end = datetime.now(timezone.utc)
+    window_start = window_end - timedelta(days=payload.days)
+    try:
+        activity_response = fetch_change_activity(
+            payload.access_token, spreadsheet_id, since=window_start, until=window_end
+        )
+    except ChangeHistoryAccessError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+    changes = summarize_change_history(activity_response, spreadsheet_id, window_start, window_end)
+
+    pdf_bytes = generate_pdf_report(spreadsheet_id, health, documentation, changes)
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{spreadsheet_id}-insights-report.pdf"'},
+    )

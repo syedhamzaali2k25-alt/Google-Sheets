@@ -7,6 +7,7 @@ import { ChangeAnalyticsPanel } from "./components/ChangeAnalyticsPanel";
 import { DocumentationPanel } from "./components/DocumentationPanel";
 import { FindingsList } from "./components/FindingsList";
 import { HealthGauge } from "./components/HealthGauge";
+import { ShareReportButton } from "./components/ShareReportButton";
 import { ErrorBanner, LoadingSpinner } from "./components/StatusViews";
 import { Tabs, type TabKey } from "./components/Tabs";
 
@@ -37,6 +38,7 @@ function App() {
   const [activeTab, setActiveTab] = useState<TabKey>("dashboard");
   const [retryCount, setRetryCount] = useState(0);
 
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [health, setHealth] = useState<PanelState<HealthReport> | null>(null);
   const [documentation, setDocumentation] = useState<PanelState<SpreadsheetDocumentation> | null>(null);
   const [changes, setChanges] = useState<PanelState<ChangeHistoryReport> | null>(null);
@@ -60,6 +62,7 @@ function App() {
         return;
       }
       if (cancelled) return;
+      setAccessToken(token);
 
       const [healthResult, docResult, changesResult] = await Promise.allSettled([
         fetchHealth(token, spreadsheetId),
@@ -128,9 +131,14 @@ function App() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
-      <header className="mb-6">
-        <h1 className="text-xl font-semibold text-slate-900">Google Sheet Insights</h1>
-        <p className="font-mono text-sm text-slate-500">{spreadsheetId}</p>
+      <header className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-semibold text-slate-900">Google Sheet Insights</h1>
+          <p className="font-mono text-sm text-slate-500">{spreadsheetId}</p>
+        </div>
+        {accessToken && (
+          <ShareReportButton accessToken={accessToken} spreadsheetId={spreadsheetId} days={CHANGE_WINDOW_DAYS} />
+        )}
       </header>
 
       <Tabs active={activeTab} onChange={setActiveTab} />
