@@ -47,14 +47,14 @@ export function ShareReportButton({
         type="button"
         onClick={handleClick}
         disabled={state.status === "exporting"}
-        className="flex shrink-0 items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-default disabled:text-slate-400"
+        className="flex shrink-0 items-center gap-2 rounded-[4px] border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-bold tracking-wide text-white uppercase hover:bg-white/10 disabled:cursor-default disabled:text-white/40"
       >
         {state.status === "exporting" && (
-          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-300 border-t-slate-500" />
+          <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
         )}
         {state.status === "exporting" ? "Preparing PDF…" : "Share Report"}
       </button>
-      {state.status === "error" && <p className="max-w-xs text-right text-xs text-red-600">{state.message}</p>}
+      {state.status === "error" && <p className="max-w-xs text-right text-xs text-[#FF9B8A]">{state.message}</p>}
     </div>
   );
 }

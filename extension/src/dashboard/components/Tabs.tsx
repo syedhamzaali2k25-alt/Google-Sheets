@@ -8,16 +8,16 @@ const TABS: { key: TabKey; label: string }[] = [
 
 export function Tabs({ active, onChange }: { active: TabKey; onChange: (key: TabKey) => void }) {
   return (
-    <div className="flex gap-1 border-b border-slate-200">
+    <div className="flex gap-6">
       {TABS.map((tab) => (
         <button
           key={tab.key}
           type="button"
           onClick={() => onChange(tab.key)}
-          className={`border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
+          className={`border-b-2 py-3 text-sm font-bold tracking-wide transition-colors ${
             active === tab.key
-              ? "border-blue-600 text-blue-600"
-              : "border-transparent text-slate-500 hover:text-slate-700"
+              ? "border-[#4F7CFF] text-white"
+              : "border-transparent text-[#6B7C9E] hover:text-[#9AA6C0]"
           }`}
         >
           {tab.label}

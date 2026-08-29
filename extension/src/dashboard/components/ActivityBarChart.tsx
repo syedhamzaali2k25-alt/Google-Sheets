@@ -20,7 +20,7 @@ export function ActivityBarChart({ events }: { events: ActivityEvent[] }) {
   const buckets = bucketEventsByDay(events);
 
   if (buckets.length === 0) {
-    return <p className="text-sm text-slate-500">No activity in this time window.</p>;
+    return <p className="text-sm text-[#8A93A6]">No activity in this time window.</p>;
   }
 
   const max = Math.max(...buckets.map((bucket) => bucket.count));
@@ -30,13 +30,13 @@ export function ActivityBarChart({ events }: { events: ActivityEvent[] }) {
       {buckets.map((bucket) => {
         const heightPx = Math.max(4, Math.round((bucket.count / max) * MAX_BAR_HEIGHT_PX));
         return (
-          <div key={bucket.date} className="flex min-w-[18px] flex-1 flex-col items-center justify-end gap-1">
+          <div key={bucket.date} className="flex min-w-[18px] flex-1 flex-col items-center justify-end gap-1.5">
             <div
-              className="w-full rounded-t bg-blue-500"
+              className="w-full rounded-t-[2px] bg-[#4F7CFF]"
               style={{ height: `${heightPx}px` }}
               title={`${bucket.date}: ${bucket.count} event${bucket.count === 1 ? "" : "s"}`}
             />
-            <span className="text-[9px] whitespace-nowrap text-slate-400">{bucket.date.slice(5)}</span>
+            <span className="font-mono text-[9px] whitespace-nowrap text-[#8A93A6]">{bucket.date.slice(5)}</span>
           </div>
         );
       })}

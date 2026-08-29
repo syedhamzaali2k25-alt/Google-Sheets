@@ -1,53 +1,68 @@
-import type { Finding, FindingCategory } from "@shared/types";
-import { SEVERITY_BADGE, SEVERITY_LABEL, SEVERITY_ORDER } from "../severity";
-
-const CATEGORY_LABELS: Record<FindingCategory, string> = {
-  data_quality: "Data Quality",
-  formula_quality: "Formula Quality",
-  structure: "Structure",
-  maintainability: "Maintainability",
-  security: "Security",
-};
+import type { Finding } from "@shared/types";
+import { CATEGORY_ACCENT, CATEGORY_LABELS, SEVERITY_ORDER, SEVERITY_TAG } from "../severity";
+import { Card, SectionLabel } from "./ReportPrimitives";
 
 export function FindingsList({ findings }: { findings: Finding[] }) {
-  if (findings.length === 0) {
-    return <p className="text-sm text-slate-500">No issues found — this sheet looks healthy.</p>;
-  }
-
-  const groups = SEVERITY_ORDER.map((severity) => ({
+  const counts = SEVERITY_ORDER.map((severity) => ({
     severity,
-    items: findings.filter((finding) => finding.severity === severity),
-  })).filter((group) => group.items.length > 0);
+    count: findings.filter((finding) => finding.severity === severity).length,
+  })).filter((entry) => entry.count > 0);
 
   return (
-    <div className="max-h-96 space-y-4 overflow-y-auto pr-1">
-      {groups.map(({ severity, items }) => (
-        <div key={severity}>
-          <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
-            <span className={`rounded-full px-2 py-0.5 text-xs ${SEVERITY_BADGE[severity]}`}>
-              {SEVERITY_LABEL[severity]}
-            </span>
-            {items.length} finding{items.length === 1 ? "" : "s"}
-          </h3>
-          <ul className="space-y-2">
-            {items.map((finding, index) => (
-              <li key={`${finding.cell_range}-${index}`} className="rounded-lg border border-slate-200 bg-white p-3">
-                <div className="mb-1 flex items-center justify-between gap-2">
-                  <span className="text-xs font-medium tracking-wide text-slate-400 uppercase">
-                    {CATEGORY_LABELS[finding.category]}
-                  </span>
-                  <span className="font-mono text-xs text-slate-400">{finding.cell_range}</span>
-                </div>
-                <p className="text-sm text-slate-800">{finding.description}</p>
-                <p className="mt-1 text-sm text-slate-500">
-                  <span className="font-medium text-slate-600">Recommended: </span>
-                  {finding.recommendation}
-                </p>
-              </li>
+    <section>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <SectionLabel>Findings</SectionLabel>
+        {counts.length > 0 && (
+          <div className="flex items-center gap-1.5">
+            {counts.map(({ severity, count }) => (
+              <span
+                key={severity}
+                className={`rounded-[3px] px-2 py-0.5 text-[10px] font-extrabold tracking-wide text-white ${SEVERITY_TAG[severity].bg}`}
+              >
+                {SEVERITY_TAG[severity].label} · {count}
+              </span>
             ))}
-          </ul>
-        </div>
-      ))}
-    </div>
+          </div>
+        )}
+      </div>
+
+      <Card className="p-5">
+        {findings.length === 0 ? (
+          <p className="text-sm text-[#8A93A6]">No issues found — this sheet looks healthy.</p>
+        ) : (
+          <div className="divide-y divide-[#E7E9EE]">
+            {findings.map((finding, index) => (
+              <div key={`${finding.cell_range}-${index}`} className="flex gap-4 py-4 first:pt-0 last:pb-0">
+                <span className="w-8 shrink-0 font-mono text-xl leading-none font-bold text-[#D7DBE3] tabular-nums">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-xs font-extrabold tracking-wide uppercase ${CATEGORY_ACCENT[finding.category]}`}
+                      >
+                        {CATEGORY_LABELS[finding.category]}
+                      </span>
+                      <span
+                        className={`rounded-[3px] px-1.5 py-0.5 text-[10px] font-extrabold tracking-wide text-white ${SEVERITY_TAG[finding.severity].bg}`}
+                      >
+                        {SEVERITY_TAG[finding.severity].label}
+                      </span>
+                    </div>
+                    <span className="shrink-0 font-mono text-xs text-[#8A93A6]">{finding.cell_range}</span>
+                  </div>
+                  <p className="text-sm text-[#2B3245]">{finding.description}</p>
+                  <p className="mt-1 text-xs text-[#8A93A6]">
+                    <span className="font-bold text-[#5B6478]">Recommended: </span>
+                    {finding.recommendation}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+    </section>
   );
 }
