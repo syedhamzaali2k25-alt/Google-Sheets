@@ -1,4 +1,7 @@
 import type { FindingCategory, Severity } from "@shared/types";
+import { scoreTier, TIER_COLORS, TIER_HEX, type Tier } from "../lib/theme";
+
+export { scoreTier, TIER_COLORS, TIER_HEX, type Tier };
 
 export const SEVERITY_ORDER: Severity[] = ["high", "medium", "low"];
 
@@ -33,50 +36,4 @@ export const CATEGORY_ACCENT: Record<FindingCategory, string> = {
   structure: "text-[#0E8C86]",
   maintainability: "text-[#B5651D]",
   security: "text-[#B2334D]",
-};
-
-/** Score-based tier (distinct from a finding's own severity) used for the
- * health gauge and the per-category status pills. */
-export type Tier = "critical" | "fair" | "good";
-
-export function scoreTier(score: number): Tier {
-  if (score >= 80) return "good";
-  if (score >= 50) return "fair";
-  return "critical";
-}
-
-export const TIER_HEX: Record<Tier, string> = {
-  critical: "#C0281C",
-  fair: "#C79015",
-  good: "#0F7A3D",
-};
-
-export const TIER_COLORS: Record<
-  Tier,
-  { text: string; tagBg: string; barBg: string; label: string; verdict: string; subtext: string }
-> = {
-  critical: {
-    text: "text-[#C0281C]",
-    tagBg: "bg-[#C0281C]",
-    barBg: "bg-[#C0281C]",
-    label: "CRITICAL",
-    verdict: "Needs Attention",
-    subtext: "Multiple high-severity issues should be reviewed before relying on this sheet.",
-  },
-  fair: {
-    text: "text-[#9A6300]",
-    tagBg: "bg-[#C79015]",
-    barBg: "bg-[#C79015]",
-    label: "FAIR",
-    verdict: "Could Be Improved",
-    subtext: "Some issues were found that are worth cleaning up.",
-  },
-  good: {
-    text: "text-[#0F7A3D]",
-    tagBg: "bg-[#0F7A3D]",
-    barBg: "bg-[#0F7A3D]",
-    label: "GOOD",
-    verdict: "Healthy",
-    subtext: "This sheet meets most data quality and structure best practices.",
-  },
 };
