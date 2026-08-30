@@ -159,6 +159,37 @@ def fetch_spreadsheet_raw_cached(access_token: str, spreadsheet_id: str) -> dict
     return raw
 
 
+def apply_batch_update(
+    access_token: str, spreadsheet_id: str, requests: list[dict[str, Any]]
+) -> dict[str, Any]:
+    """Applies a batchUpdate of the given requests to a spreadsheet.
+
+    This is the only write path this backend has, used exclusively by the
+    "Highlight duplicates in Sheet" feature's repeatCell requests (see
+    analysis/highlight.py) — never for arbitrary requests. Same error
+    handling as fetch_spreadsheet_raw. The incoming-request rate limit that
+    already protects every endpoint (app.rate_limit.RateLimitMiddleware)
+    covers the highlight endpoints too, so there's no separate outbound
+    backoff layer to add here.
+    """
+    if not requests:
+        return {}
+
+    credentials = Credentials(token=access_token)
+    service = build("sheets", "v4", credentials=credentials, cache_discovery=False)
+
+    try:
+        return (
+            service.spreadsheets()
+            .batchUpdate(spreadsheetId=spreadsheet_id, body={"requests": requests})
+            .execute()
+        )
+    except HttpError as exc:
+        raise _map_http_error(exc) from exc
+    except RefreshError as exc:
+        raise SheetsAccessError(401, "Google access token is invalid or expired.") from exc
+
+
 def _map_http_error(exc: HttpError) -> SheetsAccessError:
     status_code = exc.resp.status if exc.resp else 500
 

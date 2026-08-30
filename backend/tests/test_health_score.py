@@ -37,9 +37,18 @@ def _findings_in(report, category: Category) -> list:
 def test_data_quality_flags_duplicate_row(report):
     findings = _findings_in(report, Category.DATA_QUALITY)
     assert any(
-        f.severity == Severity.HIGH and "duplicat" in f.description.lower() and "2" in f.description
+        f.severity == Severity.HIGH
+        and "duplicat" in f.description.lower()
+        and "2" in f.description
+        and f.highlightable
         for f in findings
     ), findings
+
+
+def test_only_duplicate_row_findings_are_highlightable(report):
+    for finding in report.findings:
+        is_duplicate_row_finding = "duplicat" in finding.description.lower()
+        assert finding.highlightable == is_duplicate_row_finding, finding
 
 
 def test_formula_quality_flags_div_zero_error(report):

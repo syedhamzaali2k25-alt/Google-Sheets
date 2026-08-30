@@ -203,7 +203,11 @@ function App() {
                   </Card>
                 </section>
 
-                <FindingsList findings={health.data.findings} />
+                <FindingsList
+                  findings={health.data.findings}
+                  accessToken={accessToken ?? ""}
+                  spreadsheetId={spreadsheetId}
+                />
               </div>
             ) : (
               <ErrorBanner message={health?.error ?? "Could not compute the health score."} />

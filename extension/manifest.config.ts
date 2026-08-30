@@ -34,7 +34,12 @@ export default defineManifest({
     // extension's id. See README.md for setup steps.
     client_id: "319140573974-mkcdhjnb5pq0th975sbrqc58523a91mn.apps.googleusercontent.com",
     scopes: [
-      "https://www.googleapis.com/auth/spreadsheets.readonly",
+      // Full read-write, not spreadsheets.readonly: the "Highlight
+      // duplicates in Sheet" feature writes cell background formatting
+      // back to the user's sheet. This scope is a superset of
+      // spreadsheets.readonly for the Sheets resource, so readonly is
+      // intentionally removed rather than kept alongside it.
+      "https://www.googleapis.com/auth/spreadsheets",
       "https://www.googleapis.com/auth/drive.metadata.readonly",
       "https://www.googleapis.com/auth/drive.activity.readonly",
       // Lets the backend identify who a health report belongs to (for the

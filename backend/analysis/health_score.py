@@ -51,6 +51,12 @@ class Finding(BaseModel):
     description: str
     cell_range: str
     recommendation: str
+    # True only for the "fully duplicated rows" check below. Gates the
+    # dashboard's "Highlight in Sheet" write-back feature — the frontend
+    # must never infer this by matching on `description` text, and the
+    # highlight endpoint (backend/analysis/highlight.py) never touches a
+    # finding's cell_range unless this is set.
+    highlightable: bool = False
 
 
 class CategoryWeights(BaseModel):
@@ -153,6 +159,7 @@ def _check_duplicate_rows(sheet_name: str, data_rows: list[Row]) -> list[Finding
                 ),
                 cell_range=f"{sheet_name}!" + ",".join(f"A{r}:Z{r}" for r in sheet_rows),
                 recommendation="Remove or consolidate the duplicate rows.",
+                highlightable=True,
             )
         )
     return findings

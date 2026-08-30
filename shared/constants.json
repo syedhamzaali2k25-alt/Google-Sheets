@@ -8,11 +8,13 @@
   "sheetsDocumentationPathTemplate": "/sheets/{spreadsheetId}/documentation",
   "sheetsChangesPathTemplate": "/sheets/{spreadsheetId}/changes",
   "sheetsExportPathTemplate": "/sheets/{spreadsheetId}/export",
+  "sheetsHighlightDuplicatesPathTemplate": "/sheets/{spreadsheetId}/highlight-duplicates",
+  "sheetsClearHighlightsPathTemplate": "/sheets/{spreadsheetId}/clear-highlights",
   "extensionOrigins": [
     "chrome-extension://__EXTENSION_ID__"
   ],
   "googleOAuthScopes": [
-    "https://www.googleapis.com/auth/spreadsheets.readonly",
+    "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive.metadata.readonly",
     "https://www.googleapis.com/auth/drive.activity.readonly",
     "https://www.googleapis.com/auth/userinfo.email"

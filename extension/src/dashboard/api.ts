@@ -1,5 +1,5 @@
 import constants from "@shared/constants.json";
-import type { ChangeHistoryReport, HealthReport, SpreadsheetDocumentation } from "@shared/types";
+import type { ChangeHistoryReport, HealthReport, HighlightResponse, SpreadsheetDocumentation } from "@shared/types";
 
 export class ApiError extends Error {}
 
@@ -46,6 +46,14 @@ export async function fetchChanges(
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return parseJsonOrThrow<ChangeHistoryReport>(response);
+}
+
+export function highlightDuplicates(accessToken: string, spreadsheetId: string): Promise<HighlightResponse> {
+  return postForToken<HighlightResponse>(constants.sheetsHighlightDuplicatesPathTemplate, accessToken, spreadsheetId);
+}
+
+export function clearHighlights(accessToken: string, spreadsheetId: string): Promise<HighlightResponse> {
+  return postForToken<HighlightResponse>(constants.sheetsClearHighlightsPathTemplate, accessToken, spreadsheetId);
 }
 
 export async function exportReport(accessToken: string, spreadsheetId: string, days: number): Promise<Blob> {

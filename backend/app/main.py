@@ -18,12 +18,19 @@ from analysis.change_history import (
 from analysis.documentation import SpreadsheetDocumentation, build_documentation
 from analysis.export import generate_pdf_report
 from analysis.health_score import CategoryWeights, HealthReport, compute_health_report
+from analysis.highlight import build_clear_requests, build_highlight_requests, count_affected_cells
 from analysis.structure import SpreadsheetStructure, build_spreadsheet_structure
 from app.auth import TokenVerificationError, get_user_email_sync, verify_access_token
 from app.db import get_db
-from app.google_sheets import SheetsAccessError, fetch_spreadsheet_raw_cached
+from app.google_sheets import SheetsAccessError, apply_batch_update, fetch_spreadsheet_raw_cached
 from app.rate_limit import DEFAULT_BURST, DEFAULT_REQUESTS_PER_MINUTE, RateLimiter, RateLimitMiddleware
-from app.repository import get_or_create_user, save_report
+from app.repository import (
+    delete_applied_highlight,
+    get_applied_highlight,
+    get_or_create_user,
+    save_report,
+    upsert_applied_highlight,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +78,13 @@ class HealthReportRequest(BaseModel):
 class ExportRequest(BaseModel):
     access_token: str
     days: int = 30
+
+
+class HighlightResponse(BaseModel):
+    success: bool
+    ranges_highlighted: int = 0
+    cells_affected: int = 0
+    error: str | None = None
 
 
 @app.get("/health")
@@ -212,3 +226,93 @@ def export_spreadsheet_report(spreadsheet_id: str, payload: ExportRequest) -> Re
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{spreadsheet_id}-insights-report.pdf"'},
     )
+
+
+@app.post("/sheets/{spreadsheet_id}/highlight-duplicates", response_model=HighlightResponse)
+def highlight_duplicate_rows(
+    spreadsheet_id: str, payload: AccessTokenRequest, db: Session = Depends(get_db)
+) -> HighlightResponse:
+    """Writes a light red tint onto every "fully duplicated rows" finding's
+    cell range in the user's actual Google Sheet. Entirely re-computed from
+    the token + spreadsheet_id on every call — the client never gets to
+    name a range; only ranges this request itself just derived from a
+    highlightable Finding are ever touched, and only background color is
+    ever written.
+    """
+    try:
+        raw = fetch_spreadsheet_raw_cached(payload.access_token, spreadsheet_id)
+    except SheetsAccessError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+
+    structure = build_spreadsheet_structure(raw)
+    try:
+        health = compute_health_report(structure, raw)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    email = get_user_email_sync(payload.access_token)
+    if not email:
+        return HighlightResponse(
+            success=False,
+            error="Could not verify your Google account, so this backend can't safely track "
+            "(and later clear) highlights for this spreadsheet.",
+        )
+    user = get_or_create_user(db, email)
+
+    # Clear whatever was highlighted last time first — those rows may no
+    # longer be duplicates after edits since the last call. Delete the
+    # record immediately after a successful clear (rather than waiting
+    # until the very end) so a failure applying the *new* highlights below
+    # never leaves the database claiming ranges are highlighted when they
+    # were in fact just cleared.
+    existing = get_applied_highlight(db, user, spreadsheet_id)
+    if existing is not None:
+        try:
+            apply_batch_update(payload.access_token, spreadsheet_id, build_clear_requests(existing.ranges))
+        except SheetsAccessError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+        delete_applied_highlight(db, user, spreadsheet_id)
+
+    requests = build_highlight_requests(structure, health.findings)
+    if not requests:
+        return HighlightResponse(success=True, ranges_highlighted=0, cells_affected=0)
+
+    try:
+        apply_batch_update(payload.access_token, spreadsheet_id, requests)
+    except SheetsAccessError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+
+    grid_ranges = [request["repeatCell"]["range"] for request in requests]
+    upsert_applied_highlight(db, user, spreadsheet_id, grid_ranges)
+
+    return HighlightResponse(
+        success=True,
+        ranges_highlighted=len(grid_ranges),
+        cells_affected=count_affected_cells(grid_ranges),
+    )
+
+
+@app.post("/sheets/{spreadsheet_id}/clear-highlights", response_model=HighlightResponse)
+def clear_duplicate_highlights(
+    spreadsheet_id: str, payload: AccessTokenRequest, db: Session = Depends(get_db)
+) -> HighlightResponse:
+    """Clears whatever this backend last recorded as highlighted for this
+    spreadsheet, without applying anything new."""
+    email = get_user_email_sync(payload.access_token)
+    if not email:
+        return HighlightResponse(
+            success=False, error="Could not verify your Google account for this spreadsheet."
+        )
+    user = get_or_create_user(db, email)
+
+    existing = get_applied_highlight(db, user, spreadsheet_id)
+    if existing is None or not existing.ranges:
+        return HighlightResponse(success=True, ranges_highlighted=0, cells_affected=0)
+
+    try:
+        apply_batch_update(payload.access_token, spreadsheet_id, build_clear_requests(existing.ranges))
+    except SheetsAccessError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+
+    delete_applied_highlight(db, user, spreadsheet_id)
+    return HighlightResponse(success=True, ranges_highlighted=0, cells_affected=0)

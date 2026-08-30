@@ -21,6 +21,10 @@ class ColumnType(str, Enum):
 
 class SheetInfo(BaseModel):
     name: str
+    # The Sheets API's own numeric sheet id (sheetProperties.sheetId) — needed
+    # to address this sheet in a batchUpdate GridRange, which identifies a
+    # sheet by id, not by name (see analysis/highlight.py).
+    sheet_id: int | None = None
     # The sheet's declared grid capacity (sheetProperties.gridProperties.rowCount)
     # — Google Sheets defaults new sheets to 1000, regardless of how much data
     # they actually hold. Use data_row_count below for anything describing how
@@ -90,6 +94,16 @@ def column_letters(index: int) -> str:
         index, remainder = divmod(index - 1, 26)
         letters = chr(65 + remainder) + letters
     return letters
+
+
+def column_index_from_letters(letters: str) -> int:
+    """Spreadsheet column letters -> 0-based index ("A" -> 0). Inverse of
+    column_letters(); used wherever a cell_range string needs parsing back
+    into indices (e.g. analysis/highlight.py's GridRange construction)."""
+    index = 0
+    for ch in letters.upper():
+        index = index * 26 + (ord(ch) - ord("A") + 1)
+    return index - 1
 
 
 def cell_ref(row_index: int, col_index: int) -> str:
@@ -185,6 +199,7 @@ def build_spreadsheet_structure(raw: dict[str, Any]) -> SpreadsheetStructure:
         sheets_info.append(
             SheetInfo(
                 name=name,
+                sheet_id=sheet.get("sheetId"),
                 row_count=row_count,
                 data_row_count=data_row_count,
                 column_count=column_count,

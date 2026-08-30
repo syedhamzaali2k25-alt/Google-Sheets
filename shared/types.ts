@@ -72,6 +72,9 @@ export interface Finding {
   description: string;
   cell_range: string;
   recommendation: string;
+  // True only for "fully duplicated rows" findings — gates the dashboard's
+  // "Highlight in Sheet" button. Never infer this from `description` text.
+  highlightable: boolean;
 }
 
 export interface CategoryScores {
@@ -95,6 +98,15 @@ export interface HealthReport {
   category_scores: CategoryScores;
   weights: CategoryWeights;
   findings: Finding[];
+}
+
+// --- Highlight duplicates (backend/analysis/highlight.py) --------------
+
+export interface HighlightResponse {
+  success: boolean;
+  ranges_highlighted: number;
+  cells_affected: number;
+  error?: string | null;
 }
 
 // --- Documentation (backend/analysis/documentation.py) -----------------
