@@ -107,7 +107,7 @@ def _describe_sheet(sheet: SheetInfo, columns: list[ColumnInfo], sheet_formulas:
         sentences.append(f"The '{sheet.name}' sheet contains tabular data with no clearly labeled columns.")
 
     sentences.append(
-        f"It spans {sheet.row_count} row{'s' if sheet.row_count != 1 else ''} and "
+        f"It spans {sheet.data_row_count} row{'s' if sheet.data_row_count != 1 else ''} and "
         f"{sheet.column_count} column{'s' if sheet.column_count != 1 else ''}"
         f"{', and is hidden' if sheet.hidden else ''}."
     )
@@ -183,7 +183,7 @@ def _summarize_workbook(structure: SpreadsheetStructure, relationships: list[She
         sentences.append(f"The sheets appear linked via {linking_columns}.")
 
     sentences.append(
-        f"In total it holds {structure.stats.total_rows} rows, uses "
+        f"In total it holds {structure.stats.total_data_rows} rows, uses "
         f"{len(structure.formulas)} formula(s), and is about "
         f"{round(structure.stats.percent_empty_cells)}% empty."
     )

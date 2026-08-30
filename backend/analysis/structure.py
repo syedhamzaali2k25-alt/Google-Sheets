@@ -21,7 +21,12 @@ class ColumnType(str, Enum):
 
 class SheetInfo(BaseModel):
     name: str
+    # The sheet's declared grid capacity (sheetProperties.gridProperties.rowCount)
+    # — Google Sheets defaults new sheets to 1000, regardless of how much data
+    # they actually hold. Use data_row_count below for anything describing how
+    # much of the sheet is actually populated.
     row_count: int
+    data_row_count: int
     column_count: int
     hidden: bool
 
@@ -56,6 +61,7 @@ class MergedRange(BaseModel):
 
 class SpreadsheetStats(BaseModel):
     total_rows: int
+    total_data_rows: int
     total_non_empty_cells: int
     percent_empty_cells: float
 
@@ -173,12 +179,14 @@ def build_spreadsheet_structure(raw: dict[str, Any]) -> SpreadsheetStructure:
         row_count = sheet.get("rowCount") or 0
         column_count = sheet.get("columnCount") or 0
         rows: list[list[dict[str, Any] | None]] = sheet.get("rows") or []
+        data_row_count = sum(1 for row in rows if any(cell_is_non_empty(cell) for cell in row))
 
         sheet_id_to_name[sheet.get("sheetId")] = name
         sheets_info.append(
             SheetInfo(
                 name=name,
                 row_count=row_count,
+                data_row_count=data_row_count,
                 column_count=column_count,
                 hidden=bool(sheet.get("hidden", False)),
             )
@@ -228,6 +236,7 @@ def build_spreadsheet_structure(raw: dict[str, Any]) -> SpreadsheetStructure:
     ]
 
     total_rows = sum(s.row_count for s in sheets_info)
+    total_data_rows = sum(s.data_row_count for s in sheets_info)
     total_cells = sum(s.row_count * s.column_count for s in sheets_info)
     percent_empty_cells = (
         round((1 - total_non_empty_cells / total_cells) * 100, 2) if total_cells else 0.0
@@ -243,6 +252,7 @@ def build_spreadsheet_structure(raw: dict[str, Any]) -> SpreadsheetStructure:
         merged_cells=merged_cells,
         stats=SpreadsheetStats(
             total_rows=total_rows,
+            total_data_rows=total_data_rows,
             total_non_empty_cells=total_non_empty_cells,
             percent_empty_cells=percent_empty_cells,
         ),

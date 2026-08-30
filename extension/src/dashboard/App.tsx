@@ -177,7 +177,7 @@ function App() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-4 border-t border-white/10">
+          <div className="flex flex-col items-stretch gap-3 border-t border-white/10 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:py-0">
             <Tabs active={activeTab} onChange={setActiveTab} />
             {accessToken && <ShareReportButton accessToken={accessToken} spreadsheetId={spreadsheetId} days={CHANGE_WINDOW_DAYS} />}
           </div>

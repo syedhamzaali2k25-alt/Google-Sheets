@@ -108,3 +108,42 @@ def test_empty_raw_spreadsheet_does_not_crash():
     assert structure.sheets == []
     assert structure.stats.total_rows == 0
     assert structure.stats.percent_empty_cells == 0.0
+
+
+def _text_cell(value):
+    return {"value": value, "formattedValue": value, "formula": None, "numberFormatType": None}
+
+
+def test_data_row_count_reflects_populated_rows_not_grid_capacity():
+    """Google Sheets defaults new sheets to a 1000-row grid regardless of how
+    much data they actually hold — row_count (and stats.total_rows) reflect
+    that raw grid capacity, but data_row_count (and stats.total_data_rows)
+    must reflect only the rows that actually contain data."""
+    raw = {
+        "spreadsheetId": "sparse-id",
+        "title": "Mostly Empty",
+        "namedRanges": [],
+        "sheets": [
+            {
+                "sheetId": 0,
+                "title": "Sparse",
+                "hidden": False,
+                "rowCount": 1000,
+                "columnCount": 3,
+                "merges": [],
+                "rows": [
+                    [_text_cell("Name"), _text_cell("Amount"), None],
+                    [_text_cell("Alice"), _text_cell("10"), None],
+                    [_text_cell("Bob"), _text_cell("20"), None],
+                ],
+            }
+        ],
+    }
+
+    structure = build_spreadsheet_structure(raw)
+    sheet = structure.sheets[0]
+
+    assert sheet.row_count == 1000
+    assert sheet.data_row_count == 3
+    assert structure.stats.total_rows == 1000
+    assert structure.stats.total_data_rows == 3

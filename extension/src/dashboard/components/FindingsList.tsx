@@ -50,10 +50,12 @@ export function FindingsList({ findings }: { findings: Finding[] }) {
                         {SEVERITY_TAG[finding.severity].label}
                       </span>
                     </div>
-                    <span className="shrink-0 font-mono text-xs text-[#8A93A6]">{finding.cell_range}</span>
+                    <span className="max-w-[45%] break-all font-mono text-xs text-[#8A93A6]">
+                      {finding.cell_range}
+                    </span>
                   </div>
-                  <p className="text-sm text-[#2B3245]">{finding.description}</p>
-                  <p className="mt-1 text-xs text-[#8A93A6]">
+                  <p className="text-sm break-words text-[#2B3245]">{finding.description}</p>
+                  <p className="mt-1 text-xs break-words text-[#8A93A6]">
                     <span className="font-bold text-[#5B6478]">Recommended: </span>
                     {finding.recommendation}
                   </p>

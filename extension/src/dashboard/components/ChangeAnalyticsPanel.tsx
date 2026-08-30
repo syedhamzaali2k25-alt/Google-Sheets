@@ -46,11 +46,14 @@ export function ChangeAnalyticsPanel({ changes }: { changes: ChangeHistoryReport
           ) : (
             <div className="divide-y divide-[#E7E9EE]">
               {topContributors.map((contributor) => (
-                <div key={contributor.identifier} className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0">
-                  <span className="font-mono text-sm text-[#2B3245]">
+                <div key={contributor.identifier} className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
+                  <span
+                    className="min-w-0 flex-1 truncate font-mono text-sm text-[#2B3245]"
+                    title={contributor.display_name ?? contributor.identifier}
+                  >
                     {contributor.display_name ?? contributor.identifier}
                   </span>
-                  <span className="font-mono text-sm font-bold text-[#1A2233]">
+                  <span className="shrink-0 font-mono text-sm font-bold text-[#1A2233]">
                     {contributor.edit_count} edit{contributor.edit_count === 1 ? "" : "s"}
                   </span>
                 </div>

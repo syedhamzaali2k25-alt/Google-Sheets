@@ -121,6 +121,42 @@ def test_relationship_detected_across_sheets():
     assert "Customer ID" in doc.workbook_summary
 
 
+def test_sheet_summary_uses_populated_row_count_not_grid_capacity():
+    """A sheet's declared grid (gridProperties.rowCount) is often padded far
+    beyond its actual data — Google Sheets defaults new sheets to 1000 rows.
+    The generated documentation must describe how much data the sheet
+    actually holds, not that grid capacity."""
+    raw = {
+        "spreadsheetId": "sparse-id",
+        "title": "Mostly Empty",
+        "namedRanges": [],
+        "sheets": [
+            {
+                "sheetId": 0,
+                "title": "Sparse",
+                "hidden": False,
+                "rowCount": 1000,
+                "columnCount": 2,
+                "merges": [],
+                "rows": [
+                    [_text_cell("Name"), _text_cell("Amount")],
+                    [_text_cell("Alice"), _text_cell("10")],
+                    [_text_cell("Bob"), _text_cell("20")],
+                ],
+            }
+        ],
+    }
+
+    structure = build_spreadsheet_structure(raw)
+    doc = generate_documentation(structure)
+
+    sparse_summary = next(s for s in doc.sheet_summaries if s.sheet_name == "Sparse").summary
+    assert "3 rows" in sparse_summary
+    assert "1000" not in sparse_summary
+    assert "3 rows" in doc.workbook_summary
+    assert "1000" not in doc.workbook_summary
+
+
 def test_empty_workbook_does_not_crash():
     structure = build_spreadsheet_structure({"spreadsheetId": "empty", "title": "Empty", "sheets": []})
     doc = generate_documentation(structure)
