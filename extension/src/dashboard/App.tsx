@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { ChangeHistoryReport, HealthReport, SpreadsheetDocumentation } from "@shared/types";
+import type { ChangeHistoryReport, CollaboratorsResponse, HealthReport, SpreadsheetDocumentation } from "@shared/types";
 import { ErrorBoundary } from "../lib/ErrorBoundary";
 import { getGoogleAccessToken, GoogleAuthError } from "../lib/googleAuth";
-import { fetchChanges, fetchDocumentation, fetchHealth } from "./api";
+import { fetchChanges, fetchCollaborators, fetchDocumentation, fetchHealth } from "./api";
 import { CategoryScoreBars } from "./components/CategoryScoreBars";
 import { ChangeAnalyticsPanel } from "./components/ChangeAnalyticsPanel";
+import { CollaboratorsPanel } from "./components/CollaboratorsPanel";
 import { DashboardSkeleton } from "./components/DashboardSkeleton";
 import { DocumentationPanel } from "./components/DocumentationPanel";
 import { FindingsList } from "./components/FindingsList";
@@ -49,6 +50,7 @@ function App() {
   const [health, setHealth] = useState<PanelState<HealthReport> | null>(null);
   const [documentation, setDocumentation] = useState<PanelState<SpreadsheetDocumentation> | null>(null);
   const [changes, setChanges] = useState<PanelState<ChangeHistoryReport> | null>(null);
+  const [collaborators, setCollaborators] = useState<PanelState<CollaboratorsResponse> | null>(null);
 
   // Display-only scan timing for the report header/footer — purely
   // presentational bookkeeping around the same calls below, doesn't change
@@ -79,10 +81,11 @@ function App() {
       if (cancelled) return;
       setAccessToken(token);
 
-      const [healthResult, docResult, changesResult] = await Promise.allSettled([
+      const [healthResult, docResult, changesResult, collaboratorsResult] = await Promise.allSettled([
         fetchHealth(token, spreadsheetId),
         fetchDocumentation(token, spreadsheetId),
         fetchChanges(token, spreadsheetId, CHANGE_WINDOW_DAYS),
+        fetchCollaborators(token, spreadsheetId),
       ]);
       if (cancelled) return;
 
@@ -100,6 +103,14 @@ function App() {
         changesResult.status === "fulfilled"
           ? { status: "success", data: changesResult.value }
           : { status: "error", error: describeError(changesResult.reason, "Could not fetch change history.") },
+      );
+      setCollaborators(
+        collaboratorsResult.status === "fulfilled"
+          ? { status: "success", data: collaboratorsResult.value }
+          : {
+              status: "error",
+              error: describeError(collaboratorsResult.reason, "Could not fetch who this sheet is shared with."),
+            },
       );
       setScannedAt(new Date());
       setScanSeconds(
@@ -187,31 +198,39 @@ function App() {
       <main className="mx-auto max-w-5xl px-6 py-8">
         {activeTab === "dashboard" && (
           <ErrorBoundary key="dashboard">
-            {health?.status === "success" ? (
-              <div className="space-y-8">
-                <section>
-                  <SectionLabel>Overall Health</SectionLabel>
-                  <Card className="p-6">
-                    <div className="flex flex-col gap-8 md:flex-row md:items-center">
-                      <div className="flex flex-1 justify-center border-b border-[#E7E9EE] pb-8 md:border-r md:border-b-0 md:pr-8 md:pb-0">
-                        <HealthGauge score={health.data.overall_score} />
+            <div className="space-y-8">
+              {health?.status === "success" ? (
+                <>
+                  <section>
+                    <SectionLabel>Overall Health</SectionLabel>
+                    <Card className="p-6">
+                      <div className="flex flex-col gap-8 md:flex-row md:items-center">
+                        <div className="flex flex-1 justify-center border-b border-[#E7E9EE] pb-8 md:border-r md:border-b-0 md:pr-8 md:pb-0">
+                          <HealthGauge score={health.data.overall_score} />
+                        </div>
+                        <div className="flex-1 md:pl-8">
+                          <CategoryScoreBars scores={health.data.category_scores} />
+                        </div>
                       </div>
-                      <div className="flex-1 md:pl-8">
-                        <CategoryScoreBars scores={health.data.category_scores} />
-                      </div>
-                    </div>
-                  </Card>
-                </section>
+                    </Card>
+                  </section>
 
-                <FindingsList
-                  findings={health.data.findings}
-                  accessToken={accessToken ?? ""}
-                  spreadsheetId={spreadsheetId}
-                />
-              </div>
-            ) : (
-              <ErrorBanner message={health?.error ?? "Could not compute the health score."} />
-            )}
+                  <FindingsList
+                    findings={health.data.findings}
+                    accessToken={accessToken ?? ""}
+                    spreadsheetId={spreadsheetId}
+                  />
+                </>
+              ) : (
+                <ErrorBanner message={health?.error ?? "Could not compute the health score."} />
+              )}
+
+              {collaborators?.status === "success" ? (
+                <CollaboratorsPanel collaborators={collaborators.data} />
+              ) : (
+                <ErrorBanner message={collaborators?.error ?? "Could not fetch who this sheet is shared with."} />
+              )}
+            </div>
           </ErrorBoundary>
         )}
 

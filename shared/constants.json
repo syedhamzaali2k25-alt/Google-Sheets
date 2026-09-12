@@ -7,6 +7,7 @@
   "sheetsHealthPathTemplate": "/sheets/{spreadsheetId}/health",
   "sheetsDocumentationPathTemplate": "/sheets/{spreadsheetId}/documentation",
   "sheetsChangesPathTemplate": "/sheets/{spreadsheetId}/changes",
+  "sheetsCollaboratorsPathTemplate": "/sheets/{spreadsheetId}/collaborators",
   "sheetsExportPathTemplate": "/sheets/{spreadsheetId}/export",
   "sheetsHighlightDuplicatesPathTemplate": "/sheets/{spreadsheetId}/highlight-duplicates",
   "sheetsClearHighlightsPathTemplate": "/sheets/{spreadsheetId}/clear-highlights",

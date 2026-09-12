@@ -22,7 +22,13 @@ from analysis.highlight import build_clear_requests, build_highlight_requests, c
 from analysis.structure import SpreadsheetStructure, build_spreadsheet_structure
 from app.auth import TokenVerificationError, get_user_email_sync, verify_access_token
 from app.db import get_db
-from app.google_sheets import SheetsAccessError, apply_batch_update, fetch_spreadsheet_raw_cached
+from app.google_sheets import (
+    Collaborator,
+    SheetsAccessError,
+    apply_batch_update,
+    fetch_spreadsheet_raw_cached,
+    list_collaborators,
+)
 from app.rate_limit import DEFAULT_BURST, DEFAULT_REQUESTS_PER_MINUTE, RateLimiter, RateLimitMiddleware
 from app.repository import (
     delete_applied_highlight,
@@ -85,6 +91,11 @@ class HighlightResponse(BaseModel):
     ranges_highlighted: int = 0
     cells_affected: int = 0
     error: str | None = None
+
+
+class CollaboratorsResponse(BaseModel):
+    collaborators: list[Collaborator]
+    total_count: int
 
 
 @app.get("/health")
@@ -193,6 +204,21 @@ def get_spreadsheet_changes(
         raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
 
     return summarize_change_history(activity_response, spreadsheet_id, window_start, window_end)
+
+
+@app.get("/sheets/{spreadsheet_id}/collaborators", response_model=CollaboratorsResponse)
+def get_spreadsheet_collaborators(
+    spreadsheet_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+) -> CollaboratorsResponse:
+    """Read-only: who this spreadsheet is currently shared with. Never
+    modifies a permission — there is no corresponding write endpoint."""
+    try:
+        collaborators = list_collaborators(credentials.credentials, spreadsheet_id)
+    except SheetsAccessError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+
+    return CollaboratorsResponse(collaborators=collaborators, total_count=len(collaborators))
 
 
 @app.post("/sheets/{spreadsheet_id}/export")

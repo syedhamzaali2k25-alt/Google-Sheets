@@ -109,6 +109,28 @@ export interface HighlightResponse {
   error?: string | null;
 }
 
+// --- Collaborators (backend/app/google_sheets.py) -----------------------
+// Read-only: who a spreadsheet is currently shared with. There is no
+// corresponding write endpoint — the extension never adds/removes/changes
+// a permission.
+
+export type CollaboratorType = "user" | "group" | "domain" | "anyone";
+
+export type CollaboratorRole = "owner" | "organizer" | "fileOrganizer" | "writer" | "commenter" | "reader";
+
+export interface Collaborator {
+  type: CollaboratorType;
+  role: CollaboratorRole;
+  email: string | null;
+  display_name: string | null;
+  domain: string | null;
+}
+
+export interface CollaboratorsResponse {
+  collaborators: Collaborator[];
+  total_count: number;
+}
+
 // --- Documentation (backend/analysis/documentation.py) -----------------
 
 export interface SheetDocumentation {

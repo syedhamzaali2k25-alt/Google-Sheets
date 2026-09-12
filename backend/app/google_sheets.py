@@ -1,9 +1,10 @@
-from typing import Any
+from typing import Any, Literal
 
 from google.auth.exceptions import RefreshError
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from pydantic import BaseModel
 
 from app.cache import RevisionCache, token_fingerprint
 
@@ -21,6 +22,14 @@ class SheetsAccessError(Exception):
         super().__init__(message)
         self.status_code = status_code
         self.message = message
+
+
+class Collaborator(BaseModel):
+    type: Literal["user", "group", "domain", "anyone"]
+    role: Literal["owner", "organizer", "fileOrganizer", "writer", "commenter", "reader"]
+    email: str | None = None  # set for type=user/group, None for domain/anyone
+    display_name: str | None = None
+    domain: str | None = None  # set for type=domain
 
 
 def _extract_effective_value(effective_value: dict[str, Any] | None) -> Any:
@@ -157,6 +166,52 @@ def fetch_spreadsheet_raw_cached(access_token: str, spreadsheet_id: str) -> dict
     if revision is not None:
         _raw_cache.set(cache_key, raw, revision)
     return raw
+
+
+def _map_permission(permission: dict[str, Any]) -> Collaborator:
+    return Collaborator(
+        type=permission.get("type", "user"),
+        role=permission.get("role", "reader"),
+        email=permission.get("emailAddress"),
+        display_name=permission.get("displayName"),
+        domain=permission.get("domain"),
+    )
+
+
+def list_collaborators(access_token: str, spreadsheet_id: str) -> list[Collaborator]:
+    """Lists who a spreadsheet is currently shared with, via the Drive API's
+    permissions.list. Read-only — this backend never writes a permission.
+
+    Covered by the drive.metadata.readonly scope already granted for the
+    change-history feature: a file's sharing/permissions list is Drive
+    metadata, not file content, so no broader scope is needed here.
+    """
+    credentials = Credentials(token=access_token)
+    service = build("drive", "v3", credentials=credentials, cache_discovery=False)
+
+    permissions: list[dict[str, Any]] = []
+    page_token: str | None = None
+    try:
+        while True:
+            response = (
+                service.permissions()
+                .list(
+                    fileId=spreadsheet_id,
+                    fields="nextPageToken, permissions(id,type,role,emailAddress,displayName,domain)",
+                    pageToken=page_token,
+                )
+                .execute()
+            )
+            permissions.extend(response.get("permissions", []))
+            page_token = response.get("nextPageToken")
+            if not page_token:
+                break
+    except HttpError as exc:
+        raise _map_http_error(exc) from exc
+    except RefreshError as exc:
+        raise SheetsAccessError(401, "Google access token is invalid or expired.") from exc
+
+    return [_map_permission(permission) for permission in permissions]
 
 
 def apply_batch_update(
