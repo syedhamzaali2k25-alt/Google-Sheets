@@ -37,13 +37,13 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.props.fallback) return this.props.fallback(error, this.reset);
 
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-        <p className="font-medium">Something went wrong rendering this section.</p>
-        <p className="mt-1 text-red-600">{error.message}</p>
+      <div className="rounded-control border border-critical-tint-border bg-critical-tint p-4 text-sm text-critical-500">
+        <p className="font-bold">Something went wrong rendering this section.</p>
+        <p className="mt-1 text-critical-600">{error.message}</p>
         <button
           type="button"
           onClick={this.reset}
-          className="mt-3 rounded-md border border-red-300 bg-white px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-100"
+          className="mt-3 rounded-control border border-critical-500/30 bg-surface px-3 py-1 text-xs font-bold text-critical-500 transition-colors hover:bg-critical-tint"
         >
           Try again
         </button>

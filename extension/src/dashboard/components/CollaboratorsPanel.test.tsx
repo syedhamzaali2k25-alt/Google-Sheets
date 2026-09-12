@@ -37,6 +37,11 @@ describe("CollaboratorsPanel", () => {
     expect(screen.getByText("Viewer")).toBeInTheDocument();
 
     expect(screen.getByText("4 collaborators")).toBeInTheDocument();
+
+    // Each row gets an avatar — an initial-letter circle for a named
+    // user/group. "O" is unambiguous here since no role badge or other
+    // label in this fixture renders as the bare single letter "O".
+    expect(screen.getByText("O")).toBeInTheDocument();
   });
 
   it("falls back to readable text for anyone-with-link and domain-wide permissions", () => {

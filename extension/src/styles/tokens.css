@@ -1,0 +1,108 @@
+/**
+ * Design tokens for Google Sheet Insights, shared by the popup and the
+ * dashboard. Defined as a Tailwind v4 `@theme` block so every token below
+ * becomes a real utility class (`bg-navy-950`, `rounded-card`,
+ * `shadow-card`, `text-eyebrow`, …) instead of the hex values it wraps
+ * being retyped as `bg-[#0B1120]`-style arbitrary values at every call
+ * site. `lib/theme.ts` mirrors the same values for the handful of
+ * non-Tailwind contexts (inline SVG fills, `style={{ background: ... }}`
+ * gradients) that can't consume a CSS custom property directly.
+ *
+ * Color meaning is load-bearing elsewhere in the product (red = critical,
+ * amber = fair, green = good) — this pass refines/extends the existing
+ * palette with hover/active variants and tints, it does not replace it.
+ */
+@theme {
+  /* --- Brand: navy + accent ------------------------------------------ */
+  --color-navy-950: #0b1120;
+  --color-navy-900: #131b2e;
+  --color-navy-800: #1e2a42;
+  --color-navy-700: #2a3854;
+
+  /* Text colors legible on the dark navy header/surfaces specifically —
+   * NOT for use on the light page background (use --color-muted/-subtle
+   * there instead). */
+  --color-navy-muted: #6b7c9e;
+  --color-navy-muted-hover: #9aa6c0;
+
+  --color-accent-500: #4f7cff;
+  --color-accent-600: #3d68ee;
+  --color-accent-700: #345bd1;
+  --color-accent-tint: #eaf0ff;
+
+  /* --- Severity / health tier (red / amber / green) ------------------- */
+  --color-critical-500: #c0281c;
+  --color-critical-600: #a52116;
+  --color-critical-tint: #fde9e7;
+  --color-critical-tint-border: #f3c6c0;
+
+  --color-fair-500: #c79015;
+  --color-fair-600: #ad7b0f;
+  --color-fair-text: #9a6300;
+  --color-fair-tint: #fdf2dc;
+  --color-fair-tint-border: #f3d9a6;
+
+  --color-good-500: #0f7a3d;
+  --color-good-600: #0c6531;
+  --color-good-tint: #e4f5ea;
+  --color-good-tint-border: #bfe6cd;
+
+  --color-low-500: #8a93a6;
+
+  /* Lighter critical red for text on the dark navy surfaces (the standard
+   * --color-critical-500 is too dark to read well there). */
+  --color-critical-on-navy: #ff9b8a;
+
+  /* --- Finding-category accents (distinct from severity) -------------- */
+  --color-category-data: #3b6fe0;
+  --color-category-formula: #7c4fd1;
+  --color-category-structure: #0e8c86;
+  --color-category-maintainability: #b5651d;
+  --color-category-security: #b2334d;
+
+  /* --- Neutrals --------------------------------------------------------*/
+  --color-page: #f5f6f8;
+  --color-surface: #ffffff;
+  --color-surface-hover: #fafbfc;
+  --color-border: #e7e9ee;
+  --color-border-strong: #d7dbe3;
+  --color-ink: #1a2233;
+  --color-body: #2b3245;
+  --color-subtle: #5b6478;
+  --color-muted: #8a93a6;
+  --color-track: #eef0f4;
+
+  /* --- Radius scale: one consistent set used everywhere --------------- */
+  --radius-tag: 6px; /* badges, pills, small inline tags */
+  --radius-control: 10px; /* buttons, inputs, the logo chip */
+  --radius-card: 14px; /* panels/cards — the main content surface */
+
+  /* --- Elevation: a small, deliberate set of shadows ------------------- */
+  --shadow-card: 0 1px 2px 0 rgba(11, 17, 32, 0.04), 0 1px 3px 0 rgba(11, 17, 32, 0.05);
+  --shadow-card-hover: 0 4px 10px -2px rgba(11, 17, 32, 0.08), 0 2px 4px -2px rgba(11, 17, 32, 0.06);
+  --shadow-header: 0 1px 0 0 rgba(255, 255, 255, 0.06), 0 12px 24px -12px rgba(11, 17, 32, 0.45);
+  --shadow-popover: 0 12px 32px -8px rgba(11, 17, 32, 0.22), 0 4px 10px -4px rgba(11, 17, 32, 0.12);
+
+  /* --- Type scale additions (beyond Tailwind's default text-xs..text-4xl) */
+  --text-eyebrow: 0.6875rem; /* 11px, uppercase section/eyebrow labels */
+  --text-eyebrow--line-height: 1.4;
+  --text-hero: 2.75rem; /* 44px, the health-gauge score / hero numerals */
+  --text-hero--line-height: 1;
+
+  /* --- Motion: one duration used for every hover/focus/tab transition -- */
+  --default-transition-duration: 160ms;
+  --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Users who've asked for reduced motion get instant state changes instead
+ * of the 150-200ms transitions used throughout — applied globally so no
+ * individual component has to remember to opt out. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

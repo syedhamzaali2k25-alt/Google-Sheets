@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Finding } from "@shared/types";
+import { FOCUS_RING_CLASSES } from "../../lib/theme";
 import { clearHighlights, highlightDuplicates } from "../api";
 import { CATEGORY_ACCENT, CATEGORY_LABELS, SEVERITY_ORDER, SEVERITY_TAG } from "../severity";
 import { Card, SectionLabel } from "./ReportPrimitives";
@@ -42,24 +43,24 @@ function HighlightAction({
 
   if (state.status === "confirm") {
     return (
-      <div className="mt-3 rounded-[4px] border border-[#E7E9EE] bg-[#F5F6F8] p-3">
-        <p className="text-xs text-[#2B3245]">
+      <div className="mt-3 rounded-control border border-border bg-page p-3 shadow-popover">
+        <p className="text-xs leading-relaxed text-body">
           This will tint the following range(s) in your Google Sheet:{" "}
-          <span className="font-mono break-all text-[#5B6478]">{finding.cell_range}</span>. Only the
-          background color of those cells changes — no values or formulas are touched.
+          <span className="font-mono break-all text-subtle">{finding.cell_range}</span>. Only the background
+          color of those cells changes — no values or formulas are touched.
         </p>
-        <div className="mt-2 flex gap-2">
+        <div className="mt-2.5 flex gap-2">
           <button
             type="button"
             onClick={onConfirm}
-            className="rounded-[3px] bg-[#C0281C] px-2.5 py-1 text-xs font-bold text-white hover:bg-[#A52116]"
+            className={`rounded-control bg-critical-500 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-critical-600 active:bg-critical-600 ${FOCUS_RING_CLASSES}`}
           >
             Confirm
           </button>
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-[3px] border border-[#E7E9EE] bg-white px-2.5 py-1 text-xs font-bold text-[#5B6478] hover:bg-[#F5F6F8]"
+            className={`rounded-control border border-border bg-surface px-3 py-1.5 text-xs font-bold text-subtle transition-colors hover:bg-page ${FOCUS_RING_CLASSES}`}
           >
             Cancel
           </button>
@@ -70,8 +71,8 @@ function HighlightAction({
 
   if (state.status === "applying" || state.status === "removing") {
     return (
-      <div className="mt-3 flex items-center gap-2 text-xs font-bold text-[#5B6478]">
-        <span className="h-3 w-3 animate-spin rounded-full border-2 border-[#E7E9EE] border-t-[#5B6478]" />
+      <div className="mt-3 flex items-center gap-2 text-xs font-bold text-subtle">
+        <span className="h-3 w-3 animate-spin rounded-full border-2 border-border border-t-subtle" />
         {state.status === "applying" ? "Highlighting…" : "Removing highlight…"}
       </div>
     );
@@ -80,21 +81,21 @@ function HighlightAction({
   if (state.status === "applied") {
     return (
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <span className="rounded-[3px] bg-[#E4F5EA] px-2 py-1 text-xs font-bold text-[#0F7A3D]">
+        <span className="rounded-tag bg-good-tint px-2 py-1 text-xs font-bold text-good-500">
           Highlighted {state.rangesHighlighted} range{state.rangesHighlighted === 1 ? "" : "s"}
         </span>
         <a
           href={sheetUrl}
           target="_blank"
           rel="noreferrer"
-          className="text-xs font-bold text-[#4F7CFF] hover:underline"
+          className={`rounded-control text-xs font-bold text-accent-500 transition-colors hover:text-accent-600 hover:underline ${FOCUS_RING_CLASSES}`}
         >
           View in Sheet
         </a>
         <button
           type="button"
           onClick={onRemove}
-          className="rounded-[3px] border border-[#E7E9EE] bg-white px-2.5 py-1 text-xs font-bold text-[#5B6478] hover:bg-[#F5F6F8]"
+          className={`rounded-control border border-border bg-surface px-3 py-1.5 text-xs font-bold text-subtle transition-colors hover:bg-page ${FOCUS_RING_CLASSES}`}
         >
           Remove highlight
         </button>
@@ -105,13 +106,13 @@ function HighlightAction({
   if (state.status === "error") {
     return (
       <div className="mt-3 space-y-1.5">
-        <p className="rounded-[4px] border border-[#F3C6C0] bg-[#FDE9E7] px-2.5 py-1.5 text-xs text-[#C0281C]">
+        <p className="rounded-control border border-critical-tint-border bg-critical-tint px-3 py-1.5 text-xs text-critical-500">
           {state.message}
         </p>
         <button
           type="button"
           onClick={onRequestConfirm}
-          className="rounded-[3px] border border-[#E7E9EE] bg-white px-2.5 py-1 text-xs font-bold text-[#5B6478] hover:bg-[#F5F6F8]"
+          className={`rounded-control border border-border bg-surface px-3 py-1.5 text-xs font-bold text-subtle transition-colors hover:bg-page ${FOCUS_RING_CLASSES}`}
         >
           Try again
         </button>
@@ -123,7 +124,7 @@ function HighlightAction({
     <button
       type="button"
       onClick={onRequestConfirm}
-      className="mt-3 rounded-[3px] border border-[#C0281C] bg-white px-2.5 py-1 text-xs font-bold text-[#C0281C] hover:bg-[#FDE9E7]"
+      className={`mt-3 rounded-control border border-critical-500/30 bg-critical-tint/40 px-3 py-1.5 text-xs font-bold text-critical-500 transition-colors hover:border-critical-500 hover:bg-critical-tint ${FOCUS_RING_CLASSES}`}
     >
       Highlight in Sheet
     </button>
@@ -191,7 +192,7 @@ export function FindingsList({
             {counts.map(({ severity, count }) => (
               <span
                 key={severity}
-                className={`rounded-[3px] px-2 py-0.5 text-[10px] font-extrabold tracking-wide text-white ${SEVERITY_TAG[severity].bg}`}
+                className={`rounded-tag px-2 py-0.5 text-[10px] font-extrabold tracking-wide text-white ${SEVERITY_TAG[severity].bg}`}
               >
                 {SEVERITY_TAG[severity].label} · {count}
               </span>
@@ -202,15 +203,26 @@ export function FindingsList({
 
       <Card className="p-5">
         {findings.length === 0 ? (
-          <p className="text-sm text-[#8A93A6]">No issues found — this sheet looks healthy.</p>
+          <div className="flex flex-col items-center gap-2 py-6 text-center">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-good-tint text-good-500">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path d="M4 10.5 8 14.5 16 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+            <p className="text-sm font-bold text-ink">No issues found</p>
+            <p className="text-xs text-muted">This sheet looks healthy.</p>
+          </div>
         ) : (
-          <div className="divide-y divide-[#E7E9EE]">
+          <div className="divide-y divide-border">
             {findings.map((finding, index) => {
               const key = findingKey(finding, index);
               const state = highlightStates[key] ?? { status: "idle" };
               return (
-                <div key={key} className="flex gap-4 py-4 first:pt-0 last:pb-0">
-                  <span className="w-8 shrink-0 font-mono text-xl leading-none font-bold text-[#D7DBE3] tabular-nums">
+                <div
+                  key={key}
+                  className="-mx-5 flex gap-4 rounded-control px-5 py-4 transition-colors first:pt-0 last:pb-0 hover:bg-page"
+                >
+                  <span className="w-8 shrink-0 font-mono text-xl leading-none font-bold text-border-strong tabular-nums">
                     {String(index + 1).padStart(2, "0")}
                   </span>
                   <div className="min-w-0 flex-1">
@@ -222,18 +234,18 @@ export function FindingsList({
                           {CATEGORY_LABELS[finding.category]}
                         </span>
                         <span
-                          className={`rounded-[3px] px-1.5 py-0.5 text-[10px] font-extrabold tracking-wide text-white ${SEVERITY_TAG[finding.severity].bg}`}
+                          className={`rounded-tag px-1.5 py-0.5 text-[10px] font-extrabold tracking-wide text-white ${SEVERITY_TAG[finding.severity].bg}`}
                         >
                           {SEVERITY_TAG[finding.severity].label}
                         </span>
                       </div>
-                      <span className="max-w-[45%] break-all font-mono text-xs text-[#8A93A6]">
+                      <span className="max-w-[45%] break-all font-mono text-xs text-muted">
                         {finding.cell_range}
                       </span>
                     </div>
-                    <p className="text-sm break-words text-[#2B3245]">{finding.description}</p>
-                    <p className="mt-1 text-xs break-words text-[#8A93A6]">
-                      <span className="font-bold text-[#5B6478]">Recommended: </span>
+                    <p className="text-sm break-words text-body">{finding.description}</p>
+                    <p className="mt-1 text-xs break-words text-muted">
+                      <span className="font-bold text-subtle">Recommended: </span>
                       {finding.recommendation}
                     </p>
 

@@ -12,11 +12,12 @@ export const SEVERITY_LABEL: Record<Severity, string> = {
 };
 
 /** Solid-colored severity tag used throughout the report (findings,
- * unusual-activity flags) — red/amber/gray. */
+ * unusual-activity flags) — red/amber/gray, drawn from the shared tier
+ * palette in lib/theme.ts / styles/tokens.css. */
 export const SEVERITY_TAG: Record<Severity, { bg: string; label: string }> = {
-  high: { bg: "bg-[#C0281C]", label: "HIGH" },
-  medium: { bg: "bg-[#C79015]", label: "MEDIUM" },
-  low: { bg: "bg-[#8A93A6]", label: "LOW" },
+  high: { bg: "bg-critical-500", label: "HIGH" },
+  medium: { bg: "bg-fair-500", label: "MEDIUM" },
+  low: { bg: "bg-low-500", label: "LOW" },
 };
 
 export const CATEGORY_LABELS: Record<FindingCategory, string> = {
@@ -31,9 +32,9 @@ export const CATEGORY_LABELS: Record<FindingCategory, string> = {
  * severity colors above so a category label is never mistaken for a
  * severity indicator. */
 export const CATEGORY_ACCENT: Record<FindingCategory, string> = {
-  data_quality: "text-[#3B6FE0]",
-  formula_quality: "text-[#7C4FD1]",
-  structure: "text-[#0E8C86]",
-  maintainability: "text-[#B5651D]",
-  security: "text-[#B2334D]",
+  data_quality: "text-category-data",
+  formula_quality: "text-category-formula",
+  structure: "text-category-structure",
+  maintainability: "text-category-maintainability",
+  security: "text-category-security",
 };

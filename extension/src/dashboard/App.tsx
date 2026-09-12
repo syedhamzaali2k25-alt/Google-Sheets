@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { ChangeHistoryReport, CollaboratorsResponse, HealthReport, SpreadsheetDocumentation } from "@shared/types";
 import { ErrorBoundary } from "../lib/ErrorBoundary";
 import { getGoogleAccessToken, GoogleAuthError } from "../lib/googleAuth";
+import { Logo } from "../lib/Logo";
+import { FOCUS_RING_CLASSES, NAVY_HEADER_FROM, NAVY_HEADER_TO } from "../lib/theme";
 import { fetchChanges, fetchCollaborators, fetchDocumentation, fetchHealth } from "./api";
 import { CategoryScoreBars } from "./components/CategoryScoreBars";
 import { ChangeAnalyticsPanel } from "./components/ChangeAnalyticsPanel";
@@ -11,7 +13,6 @@ import { DocumentationPanel } from "./components/DocumentationPanel";
 import { FindingsList } from "./components/FindingsList";
 import { HealthGauge } from "./components/HealthGauge";
 import { Card, SectionLabel } from "./components/ReportPrimitives";
-import { Logo } from "../lib/Logo";
 import { ShareReportButton } from "./components/ShareReportButton";
 import { ErrorBanner } from "./components/StatusViews";
 import { Tabs, type TabKey } from "./components/Tabs";
@@ -27,8 +28,8 @@ function describeError(reason: unknown, fallback: string): string {
 
 function CenteredCard({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#F5F6F8] px-6">
-      <div className="w-full max-w-md rounded-[4px] border border-[#E7E9EE] bg-white p-8 text-center shadow-sm">
+    <div className="flex min-h-screen items-center justify-center bg-page px-6">
+      <div className="w-full max-w-md rounded-card border border-border bg-surface p-8 text-center shadow-card-hover">
         <div className="mb-4 flex justify-center">
           <Logo />
         </div>
@@ -127,8 +128,8 @@ function App() {
   if (!spreadsheetId) {
     return (
       <CenteredCard>
-        <h1 className="text-lg font-extrabold text-[#1A2233]">No spreadsheet selected</h1>
-        <p className="mt-2 text-sm text-[#8A93A6]">
+        <h1 className="text-lg font-extrabold text-ink">No spreadsheet selected</h1>
+        <p className="mt-2 text-sm text-muted">
           Open a Google Sheet in a tab, then click "Analyze Sheet" from the extension popup to open it here.
         </p>
       </CenteredCard>
@@ -138,12 +139,12 @@ function App() {
   if (stage === "auth-error") {
     return (
       <CenteredCard>
-        <h1 className="text-lg font-extrabold text-[#1A2233]">Couldn't connect to Google</h1>
-        <p className="mt-2 text-sm text-[#8A93A6]">{authError}</p>
+        <h1 className="text-lg font-extrabold text-ink">Couldn't connect to Google</h1>
+        <p className="mt-2 text-sm text-muted">{authError}</p>
         <button
           type="button"
           onClick={() => setRetryCount((n) => n + 1)}
-          className="mt-4 rounded-[4px] bg-[#4F7CFF] px-4 py-2 text-sm font-bold text-white hover:bg-[#3D68EE]"
+          className={`mt-4 rounded-control bg-accent-500 px-4 py-2 text-sm font-bold text-white shadow-card transition-colors hover:bg-accent-600 active:bg-accent-700 ${FOCUS_RING_CLASSES}`}
         >
           Try again
         </button>
@@ -165,26 +166,29 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F6F8]">
-      <header className="bg-gradient-to-b from-[#0B1120] to-[#131B2E] px-6 pt-8">
+    <div className="min-h-screen bg-page">
+      <header
+        className="px-6 pt-9 shadow-header"
+        style={{ background: `linear-gradient(135deg, ${NAVY_HEADER_FROM}, ${NAVY_HEADER_TO})` }}
+      >
         <div className="mx-auto max-w-5xl">
-          <div className="flex flex-col gap-6 pb-6 sm:flex-row sm:items-end sm:justify-between">
-            <div className="flex items-center gap-3">
-              <Logo />
+          <div className="flex flex-col gap-6 pb-7 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex items-center gap-3.5">
+              <Logo size={30} />
               <div>
-                <p className="text-[11px] font-extrabold tracking-[0.18em] text-[#6B7C9E] uppercase">
+                <p className="text-eyebrow font-extrabold tracking-[0.18em] text-navy-muted uppercase">
                   Spreadsheet Audit Report
                 </p>
-                <h1 className="text-[28px] font-extrabold tracking-[-0.02em] text-white sm:text-[34px]">
+                <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
                   Google Sheet Insights
                 </h1>
               </div>
             </div>
             <div className="text-left sm:text-right">
-              <p className="text-xs text-[#8A93A6]">
+              <p className="text-xs text-muted">
                 Scanned <span className="font-bold text-white">{scannedAt ? scannedAt.toLocaleString() : "just now"}</span>
               </p>
-              <p className="font-mono text-xs text-[#5B6478]">{spreadsheetId}</p>
+              <p className="font-mono text-xs text-subtle">{spreadsheetId}</p>
             </div>
           </div>
 
@@ -195,17 +199,17 @@ function App() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-6 py-8">
+      <main className="mx-auto max-w-5xl px-6 py-10">
         {activeTab === "dashboard" && (
           <ErrorBoundary key="dashboard">
-            <div className="space-y-8">
+            <div className="space-y-10">
               {health?.status === "success" ? (
                 <>
                   <section>
                     <SectionLabel>Overall Health</SectionLabel>
                     <Card className="p-6">
                       <div className="flex flex-col gap-8 md:flex-row md:items-center">
-                        <div className="flex flex-1 justify-center border-b border-[#E7E9EE] pb-8 md:border-r md:border-b-0 md:pr-8 md:pb-0">
+                        <div className="flex flex-1 justify-center border-b border-border pb-8 md:border-r md:border-b-0 md:pr-8 md:pb-0">
                           <HealthGauge score={health.data.overall_score} />
                         </div>
                         <div className="flex-1 md:pl-8">
@@ -255,8 +259,8 @@ function App() {
         )}
       </main>
 
-      <footer className="border-t border-[#E7E9EE] px-6 py-4">
-        <p className="mx-auto max-w-5xl font-mono text-[11px] tracking-wide text-[#8A93A6]">
+      <footer className="border-t border-border px-6 py-5">
+        <p className="mx-auto max-w-5xl font-mono text-eyebrow tracking-wide text-muted">
           {footerParts.join(" · ").toUpperCase()}
         </p>
       </footer>

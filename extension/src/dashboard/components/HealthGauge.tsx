@@ -1,3 +1,4 @@
+import { INK, MUTED } from "../../lib/theme";
 import { scoreTier, TIER_COLORS, TIER_HEX, type Tier } from "../severity";
 
 const SIZE = { width: 280, height: 150, cx: 140, cy: 128, radius: 96, stroke: 16 };
@@ -31,11 +32,17 @@ export function HealthGauge({ score }: { score: number }) {
   const tier = scoreTier(clamped);
   const colors = TIER_COLORS[tier];
   const needleAngle = scoreToAngle(clamped);
-  const needleTip = polarToCartesian(SIZE.cx, SIZE.cy, SIZE.radius - SIZE.stroke / 2 - 4, needleAngle);
+  const needleTip = polarToCartesian(SIZE.cx, SIZE.cy, SIZE.radius - SIZE.stroke / 2 - 6, needleAngle);
 
   return (
     <div className="flex w-full max-w-[260px] flex-col items-center">
       <svg viewBox={`0 0 ${SIZE.width} ${SIZE.height}`} className="w-full" role="img" aria-label={`Health score ${Math.round(clamped)} out of 100`}>
+        <defs>
+          <filter id="gauge-needle-shadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodColor={INK} floodOpacity="0.35" />
+          </filter>
+        </defs>
+
         {ZONES.map((zone) => (
           <path
             key={zone.tier}
@@ -43,6 +50,7 @@ export function HealthGauge({ score }: { score: number }) {
             fill="none"
             stroke={TIER_HEX[zone.tier]}
             strokeWidth={SIZE.stroke}
+            strokeLinecap="butt"
           />
         ))}
 
@@ -50,35 +58,30 @@ export function HealthGauge({ score }: { score: number }) {
           const angle = scoreToAngle(tick);
           const inner = polarToCartesian(SIZE.cx, SIZE.cy, SIZE.radius - SIZE.stroke / 2 - 3, angle);
           const outer = polarToCartesian(SIZE.cx, SIZE.cy, SIZE.radius + SIZE.stroke / 2 + 3, angle);
-          const labelPos = polarToCartesian(SIZE.cx, SIZE.cy, SIZE.radius + SIZE.stroke / 2 + 12, angle);
+          const labelPos = polarToCartesian(SIZE.cx, SIZE.cy, SIZE.radius + SIZE.stroke / 2 + 13, angle);
           return (
             <g key={tick}>
-              <line x1={inner.x} y1={inner.y} x2={outer.x} y2={outer.y} stroke="#C7CCD6" strokeWidth={1.5} />
-              <text x={labelPos.x} y={labelPos.y} textAnchor="middle" dominantBaseline="middle" fill="#8A93A6" fontSize={10} fontWeight={600}>
+              <line x1={inner.x} y1={inner.y} x2={outer.x} y2={outer.y} stroke="#FFFFFF" strokeWidth={1.5} opacity={0.9} />
+              <text x={labelPos.x} y={labelPos.y} textAnchor="middle" dominantBaseline="middle" fill={MUTED} fontSize={10} fontWeight={700}>
                 {tick}
               </text>
             </g>
           );
         })}
 
-        <line
-          x1={SIZE.cx}
-          y1={SIZE.cy}
-          x2={needleTip.x}
-          y2={needleTip.y}
-          stroke="#1A2233"
-          strokeWidth={3}
-          strokeLinecap="round"
-        />
-        <circle cx={SIZE.cx} cy={SIZE.cy} r={6} fill="#1A2233" />
+        <g filter="url(#gauge-needle-shadow)">
+          <line x1={SIZE.cx} y1={SIZE.cy} x2={needleTip.x} y2={needleTip.y} stroke={INK} strokeWidth={3} strokeLinecap="round" />
+          <circle cx={SIZE.cx} cy={SIZE.cy} r={7} fill={INK} />
+          <circle cx={SIZE.cx} cy={SIZE.cy} r={2.5} fill="#FFFFFF" />
+        </g>
 
-        <text x={SIZE.cx} y={SIZE.cy - 34} textAnchor="middle" fontSize={42} fontWeight={800} fill={TIER_HEX[tier]}>
+        <text x={SIZE.cx} y={SIZE.cy - 34} textAnchor="middle" fontSize={44} fontWeight={800} fill={TIER_HEX[tier]}>
           {Math.round(clamped)}
         </text>
       </svg>
 
-      <p className={`mt-1 text-sm font-extrabold tracking-wide uppercase ${colors.text}`}>{colors.verdict}</p>
-      <p className="mt-1 max-w-[220px] text-center text-xs text-[#8A93A6]">{colors.subtext}</p>
+      <p className={`mt-2 text-sm font-extrabold tracking-wide uppercase ${colors.text}`}>{colors.verdict}</p>
+      <p className="mt-1.5 max-w-[220px] text-center text-xs leading-relaxed text-muted">{colors.subtext}</p>
     </div>
   );
 }
